@@ -30,8 +30,16 @@ add_definitions(${GIT_REVISION_FLAGS})
 #        COMMENT "Executing git_rev_macro.py to generate compiler flags"
 #)
 add_custom_target(git_rev_macro_txt ALL
-#        DEPENDS ${PROJECT_SOURCE_DIR}/git_rev_macro.txt
         COMMAND Python3::Interpreter ${CMAKE_SOURCE_DIR}/git_rev_macro.py > ${PROJECT_SOURCE_DIR}/git_rev_macro.txt
         COMMENT "Executing git_rev_macro.py to generate compiler flags"
 )
+
+#add_custom_command(
+#        TARGET git_rev_macro_txt
+#        PRE_BUILD
+#        COMMAND ${CMAKE_COMMAND} -E rm -f ${PROJECT_SOURCE_DIR}/git_rev_macro.txt
+#        COMMENT "Removing old git_rev_macro.txt before regeneration"
+#)
+set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${PROJECT_SOURCE_DIR}/git_rev_macro.txt)
+
 add_dependencies(${PROJECT_NAME}.elf git_rev_macro_txt)
