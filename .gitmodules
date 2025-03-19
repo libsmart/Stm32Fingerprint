@@ -16,3 +16,6 @@
 [submodule "examples/nucleo-f429zi/Lib/Stm32Shell"]
 	path = examples/nucleo-f429zi/Lib/Stm32Shell
 	url = https://github.com/libsmart/Stm32Shell.git
+[submodule "examples/nucleo-f429zi/Lib/Stm32Gpio"]
+	path = examples/nucleo-f429zi/Lib/Stm32Gpio
+	url = https://github.com/libsmart/Stm32Gpio.git

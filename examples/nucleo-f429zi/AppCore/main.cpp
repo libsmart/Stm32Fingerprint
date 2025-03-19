@@ -62,7 +62,9 @@ void loopOnce() {
     snprintf(hostname, sizeof(hostname), FIRMWARE_NAME"-%02X%02X%02X",
              heth.Init.MACAddr[3], heth.Init.MACAddr[4], heth.Init.MACAddr[5]);
     Stm32NetX::NX->getConfig()->hostname = hostname;
-    Stm32NetX::NX->begin();
+    // Stm32NetX::NX->begin();
+
+    fp_nSTDBY.setOn();
 }
 
 /**

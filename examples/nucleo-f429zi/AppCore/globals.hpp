@@ -11,17 +11,20 @@
 #ifndef NUCLEO_F429ZI_APPCORE_GLOBALS_HPP
 #define NUCLEO_F429ZI_APPCORE_GLOBALS_HPP
 
-#include "globals.h"
 #include "Stm32ItmLogger.hpp"
 #include <cstdint>
-#include "usart.h"
+
+#include "PinDigitalIn.hpp"
+#include "PinDigitalOut.hpp"
 #include "Dns/Dns.hpp"
 #include "Driver/Stm32HalUartItDriver.hpp"
 #include "ezShell/Shell.hpp"
+#include "StreamSession/GeneralStreamSession.hpp"
 
-#ifdef __cplusplus
 extern "C" {
-#endif
+#include "globals.h"
+#include "usart.h"
+}
 
 extern uint32_t dummyCpp;
 
@@ -37,8 +40,18 @@ inline Stm32Serial::Stm32HalUartItDriver uart3Driver(&huart3, "uart3Driver");
 inline Stm32Serial::Stm32Serial Serial3(&uart3Driver, &microrlStreamSessionManager);
 
 
-#ifdef __cplusplus
-}
+// Fingerprint (Hi-Link ZW0608)
+#if ENABLE_FP==1
+inline Stm32Gpio::PinDigitalIn fp_DETECT("FP_DETECT", FP_DETECT_GPIO_Port, FP_DETECT_Pin);
+inline Stm32Gpio::PinDigitalOut fp_nSTDBY("FP_nSTDBY", FP_nSTDBY_GPIO_Port, FP_nSTDBY_Pin);
+
+inline Stm32Common::StreamSession::Manager<Stm32Common::StreamSession::GeneralStreamSession, 1>
+fpSessionManager(&Logger);
+inline Stm32Serial::Stm32HalUartItDriver uart2Driver(&huart2, "uart2Driver");
+inline Stm32Serial::Stm32Serial Serial2(&uart2Driver, &fpSessionManager);
+
+// inline Stm32Fingerprint::SensorHiLinkZw0608 fpSensor("FP", Serial7, fp_DETECT, fp_nSTDBY, Logger);
+inline uint8_t fpSensorThreadStack[4 * 1024];
 #endif
 
 #endif

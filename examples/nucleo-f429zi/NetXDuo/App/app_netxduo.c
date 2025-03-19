@@ -52,7 +52,6 @@
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
-
 /**
   * @brief  Application NetXDuo Initialization.
   * @param memory_ptr: memory pointer
@@ -66,15 +65,6 @@ UINT MX_NetXDuo_Init(VOID *memory_ptr)
   /* USER CODE BEGIN MX_NetXDuo_MEM_POOL */
   (void)byte_pool;
   /* USER CODE END MX_NetXDuo_MEM_POOL */
-
-  /* USER CODE BEGIN 0 */
-
-  // Jump to our C++ NetX thread setup function
-  ret = Stm32NetX_setup(byte_pool);
-  assert_param(ret == TX_SUCCESS);
-  return ret;
-
-  /* USER CODE END 0 */
 
   /* USER CODE BEGIN MX_NetXDuo_Init */
 

@@ -53,6 +53,7 @@ include_directories(Core/Inc AZURE_RTOS/App NetXDuo/App NetXDuo/Target Drivers/S
     AppCore
     ../../src
     Lib/Stm32Common/src
+    Lib/Stm32Gpio/src
     Lib/Stm32ItmLogger/src
     Lib/Stm32Serial/src
     Lib/Stm32ThreadX/src
@@ -65,6 +66,7 @@ file(GLOB_RECURSE SOURCES "AZURE_RTOS/*.*" "NetXDuo/*.*" "Core/*.*" "Middlewares
     "AppCore/*.*"
     "../../src/*.*"
     "Lib/Stm32Common/src/*.*"
+    "Lib/Stm32Gpio/src/*.*"
     "Lib/Stm32Serial/src/*.*"
     "Lib/Stm32ThreadX/src/*.*"
     "Lib/Stm32NetX/src/*.*"
@@ -88,6 +90,8 @@ add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
 Building ${BIN_FILE}")
 
 include(git_rev_macro.cmake)
+#add_compile_definitions(-DFIRMWARE_VERSION="0.1.0")
+add_compile_definitions(-DENABLE_FP=1)
 
 add_subdirectory(Lib/Stm32ItmLogger)
 target_link_libraries(${PROJECT_NAME}.elf PRIVATE Stm32ItmLogger)
