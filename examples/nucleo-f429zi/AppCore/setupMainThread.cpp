@@ -38,6 +38,8 @@ UINT setupMainThread(TX_BYTE_POOL *byte_pool) {
         assert_param(ret != TX_SUCCESS);
     }
 
+    mainThreadFlags.create();
+
     return tx_thread_create(&threadStruct_mainLoopThread, threadName_mainLoopThread, mainLoopThread, 0x1234,
                             threadStack_mainLoopThread, MAIN_THREAD_STACK_SIZE,
                             15, 15, 1, TX_AUTO_START);

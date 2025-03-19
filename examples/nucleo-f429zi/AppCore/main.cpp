@@ -63,11 +63,6 @@ void loopOnce() {
              heth.Init.MACAddr[3], heth.Init.MACAddr[4], heth.Init.MACAddr[5]);
     Stm32NetX::NX->getConfig()->hostname = hostname;
     Stm32NetX::NX->begin();
-
-
-    // Set up the web client for webAPI
-    // webClient.setLogger(&Logger);
-    // webClient.setName("webClient");
 }
 
 /**

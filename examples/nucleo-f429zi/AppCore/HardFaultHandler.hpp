@@ -57,7 +57,7 @@ extern "C" {
 #endif
 
 
-    void ReportHardFault(uint32_t *hard_fault_values, uint32_t exc);
+void ReportHardFault(uint32_t *hard_fault_values, uint32_t exc);
 
 
 #ifdef __cplusplus
@@ -65,4 +65,3 @@ extern "C" {
 #endif
 
 #endif
-
