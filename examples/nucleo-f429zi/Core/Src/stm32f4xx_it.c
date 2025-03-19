@@ -22,6 +22,7 @@
 #include "stm32f4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "HardFaultHandler.hpp"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -88,6 +89,16 @@ void NMI_Handler(void)
 void HardFault_Handler(void)
 {
   /* USER CODE BEGIN HardFault_IRQn 0 */
+
+    __asm volatile
+    (
+        "TST    LR, #0b0100;      "
+        "ITE    EQ;               "
+        "MRSEQ  R0, MSP;          "
+        "MRSNE  R0, PSP;          "
+        "MOV    R1, LR;           "
+        "B      ReportHardFault;  "
+    );
 
   /* USER CODE END HardFault_IRQn 0 */
   while (1)

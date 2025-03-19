@@ -1,0 +1,18 @@
+[submodule "examples/nucleo-f429zi/Lib/Stm32Common"]
+	path = examples/nucleo-f429zi/Lib/Stm32Common
+	url = https://github.com/libsmart/Stm32Common.git
+[submodule "examples/nucleo-f429zi/Lib/Stm32Serial"]
+	path = examples/nucleo-f429zi/Lib/Stm32Serial
+	url = https://github.com/libsmart/Stm32Serial.git
+[submodule "examples/nucleo-f429zi/Lib/Stm32ThreadX"]
+	path = examples/nucleo-f429zi/Lib/Stm32ThreadX
+	url = https://github.com/libsmart/Stm32ThreadX.git
+[submodule "examples/nucleo-f429zi/Lib/Stm32NetX"]
+	path = examples/nucleo-f429zi/Lib/Stm32NetX
+	url = https://github.com/libsmart/Stm32NetX.git
+[submodule "examples/nucleo-f429zi/Lib/Stm32ItmLogger"]
+	path = examples/nucleo-f429zi/Lib/Stm32ItmLogger
+	url = https://github.com/libsmart/Stm32ItmLogger.git
+[submodule "examples/nucleo-f429zi/Lib/Stm32Shell"]
+	path = examples/nucleo-f429zi/Lib/Stm32Shell
+	url = https://github.com/libsmart/Stm32Shell.git

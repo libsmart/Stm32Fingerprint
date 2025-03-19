@@ -18,9 +18,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 11)
 
 #Uncomment for hardware floating point
-#add_compile_definitions(ARM_MATH_CM4;ARM_MATH_MATRIX_CHECK;ARM_MATH_ROUNDING)
-#add_compile_options(-mfloat-abi=hard -mfpu=fpv4-sp-d16)
-#add_link_options(-mfloat-abi=hard -mfpu=fpv4-sp-d16)
+add_compile_definitions(ARM_MATH_CM4;ARM_MATH_MATRIX_CHECK;ARM_MATH_ROUNDING)
+add_compile_options(-mfloat-abi=hard -mfpu=fpv4-sp-d16)
+add_link_options(-mfloat-abi=hard -mfpu=fpv4-sp-d16)
 
 #Uncomment for software floating point
 #add_compile_options(-mfloat-abi=soft)
@@ -48,11 +48,26 @@ else ()
     add_compile_options(-Og -g)
 endif ()
 
-include_directories(${includes})
+include_directories(${includes}
+    AppCore
+    ../../src
+    Lib/Stm32Common/src
+    Lib/Stm32ItmLogger/src
+    Lib/Stm32Serial/src
+    Lib/Stm32ThreadX/src
+    Lib/Stm32NetX/src
+)
 
 add_definitions(${defines})
 
-file(GLOB_RECURSE SOURCES ${sources})
+file(GLOB_RECURSE SOURCES ${sources}
+    "AppCore/*.*"
+    "../../src/*.*"
+    "Lib/Stm32Common/src/*.*"
+    "Lib/Stm32Serial/src/*.*"
+    "Lib/Stm32ThreadX/src/*.*"
+    "Lib/Stm32NetX/src/*.*"
+)
 
 set(LINKER_SCRIPT $${CMAKE_SOURCE_DIR}/${linkerScript})
 
@@ -70,3 +85,11 @@ add_custom_command(TARGET $${PROJECT_NAME}.elf POST_BUILD
         COMMAND $${CMAKE_OBJCOPY} -Obinary $<TARGET_FILE:$${PROJECT_NAME}.elf> $${BIN_FILE}
         COMMENT "Building $${HEX_FILE}
 Building $${BIN_FILE}")
+
+include(git_rev_macro.cmake)
+
+add_subdirectory(Lib/Stm32ItmLogger)
+target_link_libraries(${PROJECT_NAME}.elf PRIVATE Stm32ItmLogger)
+
+add_subdirectory(Lib/Stm32Shell)
+target_link_libraries(${PROJECT_NAME}.elf PRIVATE Stm32Shell)

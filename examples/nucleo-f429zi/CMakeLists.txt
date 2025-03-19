@@ -19,9 +19,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_STANDARD 11)
 
 #Uncomment for hardware floating point
-#add_compile_definitions(ARM_MATH_CM4;ARM_MATH_MATRIX_CHECK;ARM_MATH_ROUNDING)
-#add_compile_options(-mfloat-abi=hard -mfpu=fpv4-sp-d16)
-#add_link_options(-mfloat-abi=hard -mfpu=fpv4-sp-d16)
+add_compile_definitions(ARM_MATH_CM4;ARM_MATH_MATRIX_CHECK;ARM_MATH_ROUNDING)
+add_compile_options(-mfloat-abi=hard -mfpu=fpv4-sp-d16)
+add_link_options(-mfloat-abi=hard -mfpu=fpv4-sp-d16)
 
 #Uncomment for software floating point
 #add_compile_options(-mfloat-abi=soft)
@@ -49,11 +49,26 @@ else ()
     add_compile_options(-Og -g)
 endif ()
 
-include_directories(Core/Inc AZURE_RTOS/App NetXDuo/App NetXDuo/Target Drivers/STM32F4xx_HAL_Driver/Inc Drivers/STM32F4xx_HAL_Driver/Inc/Legacy Drivers/CMSIS/Device/ST/STM32F4xx/Include Drivers/CMSIS/Include Drivers/BSP/Components/lan8742/ Middlewares/ST/netxduo/addons/dhcp/ Middlewares/ST/netxduo/common/inc/ Middlewares/ST/netxduo/ports/cortex_m4/gnu/inc/ Middlewares/ST/netxduo/common/drivers/ethernet/ Middlewares/ST/threadx/common/inc/ Middlewares/ST/threadx/ports/cortex_m4/gnu/inc/)
+include_directories(Core/Inc AZURE_RTOS/App NetXDuo/App NetXDuo/Target Drivers/STM32F4xx_HAL_Driver/Inc Drivers/STM32F4xx_HAL_Driver/Inc/Legacy Drivers/CMSIS/Device/ST/STM32F4xx/Include Drivers/CMSIS/Include Drivers/BSP/Components/lan8742/ Middlewares/ST/netxduo/addons/dhcp/ Middlewares/ST/netxduo/common/inc/ Middlewares/ST/netxduo/ports/cortex_m4/gnu/inc/ Middlewares/ST/netxduo/common/drivers/ethernet/ Middlewares/ST/threadx/common/inc/ Middlewares/ST/threadx/ports/cortex_m4/gnu/inc/ Middlewares/ST/netxduo/addons/dns/
+    AppCore
+    ../../src
+    Lib/Stm32Common/src
+    Lib/Stm32ItmLogger/src
+    Lib/Stm32Serial/src
+    Lib/Stm32ThreadX/src
+    Lib/Stm32NetX/src
+)
 
 add_definitions(-DDEBUG -DTX_INCLUDE_USER_DEFINE_FILE -DNX_INCLUDE_USER_DEFINE_FILE -DUSE_HAL_DRIVER -DSTM32F429xx)
 
-file(GLOB_RECURSE SOURCES "AZURE_RTOS/*.*" "NetXDuo/*.*" "Core/*.*" "Middlewares/*.*" "Drivers/*.*")
+file(GLOB_RECURSE SOURCES "AZURE_RTOS/*.*" "NetXDuo/*.*" "Core/*.*" "Middlewares/*.*" "Drivers/*.*"
+    "AppCore/*.*"
+    "../../src/*.*"
+    "Lib/Stm32Common/src/*.*"
+    "Lib/Stm32Serial/src/*.*"
+    "Lib/Stm32ThreadX/src/*.*"
+    "Lib/Stm32NetX/src/*.*"
+)
 
 set(LINKER_SCRIPT ${CMAKE_SOURCE_DIR}/STM32F429ZITX_FLASH.ld)
 
@@ -71,3 +86,11 @@ add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
         COMMAND ${CMAKE_OBJCOPY} -Obinary $<TARGET_FILE:${PROJECT_NAME}.elf> ${BIN_FILE}
         COMMENT "Building ${HEX_FILE}
 Building ${BIN_FILE}")
+
+include(git_rev_macro.cmake)
+
+add_subdirectory(Lib/Stm32ItmLogger)
+target_link_libraries(${PROJECT_NAME}.elf PRIVATE Stm32ItmLogger)
+
+add_subdirectory(Lib/Stm32Shell)
+target_link_libraries(${PROJECT_NAME}.elf PRIVATE Stm32Shell)

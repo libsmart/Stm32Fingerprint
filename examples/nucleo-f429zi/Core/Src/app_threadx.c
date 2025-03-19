@@ -23,7 +23,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "main.h"
+#include "setupMainThread.hpp"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -63,6 +64,11 @@ UINT App_ThreadX_Init(VOID *memory_ptr)
 
   /* USER CODE BEGIN App_ThreadX_Init */
   (void)byte_pool;
+
+  // Jump to our C++ thread setup function
+  ret = setupMainThread(byte_pool);
+  assert_param(ret == TX_SUCCESS);
+
   /* USER CODE END App_ThreadX_Init */
 
   return ret;
