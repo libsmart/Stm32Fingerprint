@@ -13,13 +13,14 @@
 
 #include "Stm32ItmLogger.hpp"
 #include <cstdint>
-
 #include "PinDigitalIn.hpp"
 #include "PinDigitalOut.hpp"
 #include "Dns/Dns.hpp"
 #include "Driver/Stm32HalUartItDriver.hpp"
 #include "ezShell/Shell.hpp"
 #include "StreamSession/GeneralStreamSession.hpp"
+#include <SensorHiLinkZw0608.hpp>
+
 
 extern "C" {
 #include "globals.h"
@@ -50,7 +51,7 @@ fpSessionManager(&Logger);
 inline Stm32Serial::Stm32HalUartItDriver uart2Driver(&huart2, "uart2Driver");
 inline Stm32Serial::Stm32Serial Serial2(&uart2Driver, &fpSessionManager);
 
-// inline Stm32Fingerprint::SensorHiLinkZw0608 fpSensor("FP", Serial7, fp_DETECT, fp_nSTDBY, Logger);
+inline Stm32Fingerprint::SensorHiLinkZw0608 fpSensor("FP", Serial2, fp_DETECT, fp_nSTDBY, Logger);
 inline uint8_t fpSensorThreadStack[4 * 1024];
 #endif
 

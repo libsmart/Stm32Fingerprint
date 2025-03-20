@@ -8,7 +8,10 @@
 
 #include <libsmart_config.hpp>
 #include <main.h>
+#include "Sensor.hpp"
+#include "SensorHiLinkZw0608.hpp"
 
 namespace Stm32Fingerprint {
 }
+
 #endif

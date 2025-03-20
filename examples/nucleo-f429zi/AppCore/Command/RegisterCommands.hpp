@@ -6,6 +6,7 @@
 #ifndef NUCLEO_F429ZI_APPCORE_COMMAND_REGISTERCOMMANDS_HPP
 #define NUCLEO_F429ZI_APPCORE_COMMAND_REGISTERCOMMANDS_HPP
 
+#include "Fingerprint.hpp"
 #include "Info.hpp"
 #include "Set.hpp"
 #include "ezShell/Shell.hpp"
@@ -17,6 +18,7 @@ namespace AppCore::Command {
     inline ::Command::Help help;
     inline Info info;
     inline Set set;
+    inline Fingerprint fingerprint;
 
     /**
      * @class RegisterCommands
@@ -34,6 +36,7 @@ namespace AppCore::Command {
             Shell::registerCmd(&info);
             Shell::registerCmd(&help);
             Shell::registerCmd(&set);
+            Shell::registerCmd(&fingerprint);
         }
     };
 }

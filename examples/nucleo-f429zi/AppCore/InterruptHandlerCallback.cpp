@@ -14,7 +14,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 
         case FP_DETECT_Pin: // EXTI3
              Logger.printf("HAL_GPIO_EXTI_Callback(%d): FP_DETECT_Pin \n", GPIO_Pin);
-#if FINGERPRINT==1
+#if ENABLE_FP==1
             fpSensor.isrDetect();
 #endif
             break;

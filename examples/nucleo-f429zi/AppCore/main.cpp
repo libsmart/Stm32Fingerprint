@@ -15,6 +15,7 @@
 #include "globals.hpp"
 #include "RunEvery.hpp"
 #include "RunOnce.hpp"
+#include "RunThreadEvery.hpp"
 #include "RunThreadOnce.hpp"
 #include "Stm32NetX.hpp"
 #include "Command/RegisterCommands.hpp"
@@ -68,7 +69,15 @@ void loopOnce() {
     Stm32NetX::NX->getConfig()->hostname = hostname;
     // Stm32NetX::NX->begin();
 
-    fp_nSTDBY.setOn();
+#if ENABLE_FP==1
+    fpSensor.setup();
+    static Stm32ThreadX::RunThreadEvery fpSensorThread(1, []() {
+        fpSensor.loop();
+    });
+    fpSensorThread.createAndResumeThread(fpSensorThreadStack, sizeof(fpSensorThreadStack), "loop()/fpSensorThread");
+    fpSensor.initialize();
+#endif
+
 }
 
 /**
@@ -101,6 +110,11 @@ void loop() {
  * @see Error_Handler() in Core/Src/main.c
  */
 [[noreturn]] void errorHandler() {
+
+#if ENABLE_FP==1
+    fpSensor.errorHandler();
+#endif
+
     HAL_GPIO_WritePin(LD1_GPIO_Port, LD1_Pin, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_RESET);
