@@ -35,6 +35,10 @@ void setup() {
 
     ::AppCore::Command::RegisterCommands()();
 
+
+    fp_nSTDBY.setup();
+    fp_DETECT.setup();
+
     Serial3.begin();
     // print welcome message
     Serial3.print(F("startup "));
