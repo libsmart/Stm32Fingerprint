@@ -17,23 +17,21 @@ namespace Stm32Fingerprint {
     class SensorHiLinkZw0608;
 
     namespace States {
-        struct ReadyState
+        struct GetChipSnState
                 : StateInterface<SensorHiLinkZw0608>,
                   Will<
                       ByDefault<DoNothing>,
-                      On<CommandEvent, TransitionTo<CommandState> >,
-                      On<GetChipSnEvent, TransitionTo<GetChipSnState> >,
-                      On<HandShakeEvent, TransitionTo<HandShakeState> >,
+                      On<TimeoutEvent, TransitionTo<ReadyState> >,
                       On<ResetEvent, TransitionTo<ResetState> >
                   > {
-            ReadyState(const char *name, SensorHiLinkZw0608 *machine, Stm32ItmLogger::LoggerInterface *logger)
+            GetChipSnState(const char *name, SensorHiLinkZw0608 *machine, Stm32ItmLogger::LoggerInterface *logger)
                 : StateInterface(name, machine, logger) { ; }
 
             using Will::handle;
 
-            Status onEnter(const EventInterface &event);
+            Status onEnter(const GetChipSnEvent &event);
 
-            DoNothing handle(const DetectEvent &event);
+            OneOf<DoNothing, TransitionTo<ReadyState>> handle(const DataReceivedEvent &event);
 
             DoNothing handle(const LoopEvent &event);
 

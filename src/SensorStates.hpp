@@ -9,6 +9,8 @@ namespace Stm32Fingerprint::States {
     struct UninitializedState;
     struct InitializeState;
     struct ReadyState;
+    struct CommandState;
+    struct GetChipSnState;
     struct HandShakeState;
     struct ResetState;
     struct ErrorState;
@@ -17,6 +19,8 @@ namespace Stm32Fingerprint::States {
 #include "States/UninitializedState.hpp"
 #include "States/InitializeState.hpp"
 #include "States/ReadyState.hpp"
+#include "States/CommandState.hpp"
+#include "States/GetChipSnState.hpp"
 #include "States/HandShakeState.hpp"
 #include "States/ResetState.hpp"
 #include "States/ErrorState.hpp"

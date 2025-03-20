@@ -21,6 +21,8 @@ namespace Stm32Fingerprint {
         States::UninitializedState,
         States::InitializeState,
         States::ReadyState,
+        States::CommandState,
+        States::GetChipSnState,
         States::HandShakeState,
         States::ResetState,
         States::ErrorState
@@ -39,6 +41,8 @@ namespace Stm32Fingerprint {
                   States::UninitializedState{"UNINITIALIZED", this, &logger},
                   States::InitializeState{"INIT", this, &logger},
                   States::ReadyState{"READY", this, &logger},
+                  States::CommandState{"CMD", this, &logger},
+                  States::GetChipSnState{"PS_GetChipSN", this, &logger},
                   States::HandShakeState{"PS_HandShake", this, &logger},
                   States::ResetState{"RESET", this, &logger},
                   States::ErrorState{"ERROR", this, &logger},
@@ -51,6 +55,8 @@ namespace Stm32Fingerprint {
         friend States::UninitializedState;
         friend States::InitializeState;
         friend States::ReadyState;
+        friend States::CommandState;
+        friend States::GetChipSnState;
         friend States::HandShakeState;
         friend States::ResetState;
         friend States::ErrorState;
@@ -76,7 +82,8 @@ namespace Stm32Fingerprint {
 
     public:
         void sendCommand(uint8_t instruction);
-        void sendPacket(uint8_t packetId, uint8_t *data, uint16_t dataLength);
+        void sendCommand(uint8_t instruction, const uint8_t *data, uint16_t dataLength);
+        void sendPacket(uint8_t packetId, const uint8_t *data, uint16_t dataLength);
 
     private:
         Stm32Gpio::PinDigitalIn &pinDetect;
@@ -88,13 +95,24 @@ namespace Stm32Fingerprint {
 
         uint8_t txPacket[64]{};
         uint8_t rxPacket[64]{};
+        struct rxData_t {
+            uint16_t header;
+            uint32_t address;
+            uint8_t packageId;
+            uint16_t packetLength;
+            uint8_t *data;
+            uint16_t checksum;
+        } rxData{};
 
 
     public:
         using Command = enum : uint8_t {
+            NOP = 0,
             PS_GetImage = 0x01,
             PS_GenChar = 0x02,
             PS_Match = 0x03,
+
+            PS_GetChipSN = 0x34,
             PS_HandShake = 0x35,
             PS_CheckSensor = 0x36,
             PS_RestSetting = 0x3b,
@@ -104,6 +122,8 @@ namespace Stm32Fingerprint {
             PS_SetChipAddr = 0x15,
             PS_WriteNotepad = 0x18,
             PS_ReadNotepad = 0x19
+
+
         };
     };
 }

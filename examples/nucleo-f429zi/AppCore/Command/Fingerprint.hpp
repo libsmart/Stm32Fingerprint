@@ -42,6 +42,20 @@ namespace AppCore::Command {
                 fpSensor.enqueueEvent(HandShakeEvent{});
                 return runReturn::FINISHED;
             }
+
+            if (std::strcmp(argv[1], "sn") == 0) {
+                // fpSensor.enqueueEvent(GetChipSnEvent{});
+                fpSensor.enqueueEvent(CommandEvent{Stm32Fingerprint::SensorHiLinkZw0608::PS_GetChipSN, nullptr, 1});
+                return runReturn::FINISHED;
+            }
+
+            if (std::strcmp(argv[1], "gi") == 0) {
+                // fpSensor.enqueueEvent(GetChipSnEvent{});
+                fpSensor.enqueueEvent(CommandEvent{Stm32Fingerprint::SensorHiLinkZw0608::PS_GetImage, nullptr, 0});
+                return runReturn::FINISHED;
+            }
+
+
 #endif
 
             return runReturn::ERROR;
