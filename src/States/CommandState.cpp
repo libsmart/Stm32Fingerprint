@@ -11,7 +11,8 @@ using namespace Stm32Fingerprint::States;
 
 Status CommandState::onEnter(const CommandEvent &event) {
     log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::DEBUGGING)
-            ->printf("%s::%s::onEnter(%s)\r\n", getMachine()->getName(), getName(), event.getName());
+            ->printf("%s::%s::onEnter(%s) command=%02x dataLength=%d\r\n",
+                getMachine()->getName(), getName(), event.getName(), event.command, event.dataLength);
 
     stateEnteredMillis = millis();
 
@@ -46,7 +47,7 @@ OneOf<DoNothing, TransitionTo<ReadyState> > CommandState::handle(const DataRecei
 }
 
 DoNothing CommandState::handle(const LoopEvent &event) {
-    if (millis() - stateEnteredMillis > 500) {
+    if (millis() - stateEnteredMillis > TIMEOUT_CMD) {
         getMachine()->enqueueEvent(TimeoutEvent{});
     }
     return {};

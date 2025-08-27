@@ -44,14 +44,32 @@ namespace AppCore::Command {
             }
 
             if (std::strcmp(argv[1], "sn") == 0) {
-                // fpSensor.enqueueEvent(GetChipSnEvent{});
                 fpSensor.enqueueEvent(CommandEvent{Stm32Fingerprint::SensorHiLinkZw0608::PS_GetChipSN, nullptr, 1});
                 return runReturn::FINISHED;
             }
 
+            if (std::strcmp(argv[1], "inf") == 0) {
+                fpSensor.enqueueEvent(CommandEvent{Stm32Fingerprint::SensorHiLinkZw0608::PS_ReadINFpage, nullptr, 0});
+                return runReturn::FINISHED;
+            }
+
+            if (std::strcmp(argv[1], "sys") == 0) {
+                fpSensor.enqueueEvent(CommandEvent{Stm32Fingerprint::SensorHiLinkZw0608::PS_ReadSysPara, nullptr, 0});
+                return runReturn::FINISHED;
+            }
+
+            if (std::strcmp(argv[1], "cancel") == 0) {
+                fpSensor.enqueueEvent(CommandEvent{Stm32Fingerprint::SensorHiLinkZw0608::PS_Cancel, nullptr, 0});
+                return runReturn::FINISHED;
+            }
+
             if (std::strcmp(argv[1], "gi") == 0) {
-                // fpSensor.enqueueEvent(GetChipSnEvent{});
                 fpSensor.enqueueEvent(CommandEvent{Stm32Fingerprint::SensorHiLinkZw0608::PS_GetImage, nullptr, 0});
+                return runReturn::FINISHED;
+            }
+
+            if (std::strcmp(argv[1], "ui") == 0) {
+                fpSensor.enqueueEvent(CommandEvent{Stm32Fingerprint::SensorHiLinkZw0608::PS_UpImage, nullptr, 0});
                 return runReturn::FINISHED;
             }
 

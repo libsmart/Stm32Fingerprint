@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#pragma once
+
 #include "../../../../src/libsmart_config.dist.hpp"
 #include "../Lib/Stm32Common/src/libsmart_config.dist.hpp"
 #include "../Lib/Stm32ItmLogger/src/libsmart_config.dist.hpp"
@@ -10,6 +12,12 @@
 #include "../Lib/Stm32ThreadX/src/libsmart_config.dist.hpp"
 #include "../Lib/Stm32NetX/src/libsmart_config.dist.hpp"
 #include "../Lib/Stm32Shell/src/libsmart_config.dist.hpp"
+
+
+#undef LIBSMART_LOGGER_DEFAULT_PRINT_SEVERITY
+// #define LIBSMART_LOGGER_DEFAULT_PRINT_SEVERITY Stm32ItmLogger::LoggerInterface::warningPrintSeverity
+#define LIBSMART_LOGGER_DEFAULT_PRINT_SEVERITY Stm32ItmLogger::LoggerInterface::informationalPrintSeverity
+
 
 #define LIBSMART_STM32SERIAL_ENABLE_HAL_UART_IT_DRIVER
 

@@ -74,84 +74,163 @@ void SensorHiLinkZw0608::parseReply() {
 
 
     // auto rxBuffer = serial.getRxBuffer();
-    auto rxBuffer = fpSessionManager.getFirstSession()->getRxBuffer();
+    const auto rxBuffer = fpSessionManager.getFirstSession()->getRxBuffer();
     const volatile auto buf = rxBuffer->getReadPointer();
 
-    // log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::NOTICE)
-    // ->printf("FP: %02x\r\n", rxBuffer->read());
-    // return;
-
-
-    if (available == 1 && buf[0] == 0x55) {
-        // fp sensor sends 0x55
-        handle(InitOkReceivedEvent{});
-        rxBuffer->clear();
-        return;
+    /*
+    log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::INFORMATIONAL)->print("FP: ");
+    for (size_t i = 0; i < available; i++) {
+        log()->printf("%02x ", buf[i]);
     }
+    log()->println();
+    */
 
-    // if (available >= 11) {
-    //     log()->print("FP:");
-    //     for (int i = 0; i < available; i++) {
-    //         log()->printf(" %02x", buf[i]);
-    //     }
-    //     log()->println();
-    // } else {
-    //     return;
-    // }
+    size_t frame_length = 0;
 
-    if (available >= 1 && buf[0] != 0xef) {
-        rxBuffer->clear();
-        return;
-    }
+    while (rxBuffer->available() > 0) {
+        const char c = rxBuffer->read();
+        rxFrame[frameBytesParsed++] = c;
+        if (parserState != parserState_t::CHECKSUM) rollingChecksum += static_cast<uint16_t>(c);
+        switch (parserState) {
+            case parserState_t::NONE: {
+                parserState = parserState_t::NONE;
 
-    if (available >= 2 && buf[1] != 0x01) {
-        rxBuffer->clear();
-        return;
-    }
+                if (c == 0x55) {
+                    // fp sensor sends 0x55
+                    handle(InitOkReceivedEvent{});
+                    frameBytesParsed = 0;
+                    memset(rxFrame, 0, sizeof(rxFrame));
+                    break;
+                }
 
-    // check address
+                if (c == 0xef) {
+                    parserState = parserState_t::HEADER;
+                    memset(&rxData, 0, sizeof(rxData));
+                    rxData.header = c << 8;
+                    cnt = 0;
+                    break;
+                }
+            }
+
+            case parserState_t::HEADER: {
+                parserState = parserState_t::HEADER;
+
+                if (c == 0x01) {
+                    parserState = parserState_t::ADDRESS;
+                    rxData.header |= c;
+                    cnt = 0;
+                }
+                break;
+            }
+
+            case parserState_t::ADDRESS: {
+                parserState = parserState_t::ADDRESS;
+
+                rxData.address = (rxData.address << 8) | c;
+                cnt++;
+                if (cnt >= ADDRESS_SIZE) {
+                    parserState = parserState_t::PACKAGE_ID;
+                    cnt = 0;
+                    rollingChecksum = 0;
+                }
+                break;
+            }
+
+            case parserState_t::PACKAGE_ID: {
+                parserState = parserState_t::PACKAGE_ID;
+
+                rxData.packageId = c;
+                parserState = parserState_t::PACKET_LENGTH;
+                cnt = 0;
+                break;
+            }
+
+            case parserState_t::PACKET_LENGTH: {
+                parserState = parserState_t::PACKET_LENGTH;
+
+                rxData.packetLength = (rxData.packetLength << 8) | c;
+                cnt++;
+
+                if (cnt >= LENGTH_SIZE) {
+                    frame_length = rxData.packetLength + DATA_OFFSET; //TODO: Check frame length
+                    parserState = parserState_t::DATA;
+                    cnt = 0;
+                }
+                break;
+            }
+
+            case parserState_t::DATA: {
+                parserState = parserState_t::DATA;
+
+                rxData.data = &rxFrame[DATA_OFFSET];
+                cnt++;
+
+                if (cnt >= rxData.packetLength - CHECKSUM_SIZE) {
+                    parserState = parserState_t::CHECKSUM;
+                    cnt = 0;
+                }
+                break;
+            }
+
+            case parserState_t::CHECKSUM: {
+                parserState = parserState_t::CHECKSUM;
+
+                rxData.checksum = (rxData.checksum << 8) | c;
+                cnt++;
+                if (cnt < CHECKSUM_SIZE) break;
+            }
+
+            case parserState_t::CHECK_CHECKSUM: {
+                parserState = parserState_t::CHECK_CHECKSUM;
+
+                if (rxData.checksum != rollingChecksum) {
+                    parserState = parserState_t::ERROR;
+                    break;
+                }
+            }
+
+            case parserState_t::DONE: {
+                parserState = parserState_t::DONE;
+
+                log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::NOTICE)
+                        ->printf("Header         0x%04x\r\n", rxData.header);
+
+                log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::NOTICE)
+                        ->printf("Device address 0x%08x\r\n", rxData.address);
+
+                log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::NOTICE)
+                        ->printf("Package ID     0x%02x\r\n", rxData.packageId);
+
+                log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::NOTICE)
+                        ->printf("Package length 0x%04x (%d)\r\n", rxData.packetLength, rxData.packetLength);
+
+                log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::NOTICE)
+                        ->printf("confirmation   0x%02x\r\n", rxData.data[0]);
+
+                log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::NOTICE)
+                        ->printf("Checksum       0x%04x (%d)\r\n", rxData.checksum, rxData.checksum);
+
+                log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::INFORMATIONAL)->print("RX: ");
+                for (size_t i = 0; i < rxData.packetLength + DATA_OFFSET; i++) {
+                    log()->printf("%02x ", rxFrame[i]);
+                }
+                log()->println();
+
+                handle(DataReceivedEvent{});
 
 
-    // check for timeout
+                cnt = 0;
+                frameBytesParsed = 0;
+                memset(rxFrame, 0, sizeof(rxFrame));
+                parserState = parserState_t::NONE;
+                break;
+            }
 
-    // Packet length not yet received
-    if (available < 9) { return; }
-    const uint16_t packet_length = (buf[7] << 8) + buf[8];
-    const uint16_t frame_length = packet_length + 9;
+            case parserState_t::ERROR: {
+                parserState = parserState_t::ERROR;
+            }
 
-    // full packet received?
-    if (available == frame_length) {
-        if (check_checksum(const_cast<uint8_t *>(buf), rxBuffer->available())) {
-            memcpy(&rxPacket, buf, frame_length);
-
-            rxData.header = (rxPacket[0] << 8 | rxPacket[1]);
-            rxData.address = (rxPacket[2] << 24 | rxPacket[3] << 16 | rxPacket[4] << 8 | rxPacket[5]);
-            rxData.packageId = rxPacket[6];
-            rxData.packetLength = (rxPacket[7] << 8 | rxPacket[8]);
-            rxData.data = &rxPacket[9];
-            rxData.checksum = (rxPacket[frame_length - 2] << 8 | rxPacket[frame_length - 1]);
-
-
-            log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::DEBUGGING)
-                    ->printf("Header         0x%04x\r\n", rxData.header);
-
-            log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::DEBUGGING)
-                    ->printf("Device address 0x%08x\r\n", rxData.address);
-
-            log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::DEBUGGING)
-                    ->printf("Package ID     0x%02x\r\n", rxData.packageId);
-
-            log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::DEBUGGING)
-                    ->printf("Package length 0x%04x (%d)\r\n", rxData.packetLength, rxData.packetLength);
-
-            log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::DEBUGGING)
-                    ->printf("confirmation   0x%02x\r\n", rxData.data[0]);
-
-            log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::DEBUGGING)
-                    ->printf("Checksum       0x%04x (%d)\r\n", rxData.checksum, rxData.checksum);
-
-            handle(DataReceivedEvent{});
-            rxBuffer->clear();
+            default: break;
         }
     }
 }
@@ -169,16 +248,16 @@ void SensorHiLinkZw0608::sendCommand(const uint8_t instruction, const uint8_t *d
 
 void SensorHiLinkZw0608::sendPacket(const uint8_t packetId, const uint8_t *data, const uint16_t dataLength) {
     const uint16_t frame_length = dataLength + 2 + 9;
-    if (frame_length > sizeof(txPacket)) {
+    if (frame_length > sizeof(txFrame)) {
         throw std::runtime_error("txPacket too small");
     }
 
-    auto *header = (uint16_t *) &txPacket[0];
-    auto *device_address = (uint32_t *) &txPacket[2];
-    auto *package_id = (uint8_t *) &txPacket[6];
-    auto *package_length = (uint16_t *) &txPacket[7];
-    auto *payload = (uint8_t *) &txPacket[9];
-    auto *checksum = (uint16_t *) &txPacket[9 + dataLength];
+    auto *header = (uint16_t *) &txFrame[0];
+    auto *device_address = (uint32_t *) &txFrame[2];
+    auto *package_id = (uint8_t *) &txFrame[6];
+    auto *package_length = (uint16_t *) &txFrame[7];
+    auto *payload = (uint8_t *) &txFrame[9];
+    auto *checksum = (uint16_t *) &txFrame[9 + dataLength];
 
     *header = __builtin_bswap16(0xef01);
     *device_address = __builtin_bswap32(address);
@@ -189,7 +268,13 @@ void SensorHiLinkZw0608::sendPacket(const uint8_t packetId, const uint8_t *data,
         memcpy(payload, data, dataLength);
     }
 
-    *checksum = __builtin_bswap16(calc_checksum(reinterpret_cast<uint8_t *>(&txPacket), 6, frame_length - 2));
+    *checksum = __builtin_bswap16(calc_checksum(reinterpret_cast<uint8_t *>(&txFrame), 6, frame_length - 2));
 
-    serial.getSession()->write(reinterpret_cast<const uint8_t *>(&txPacket), frame_length);
+    log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::INFORMATIONAL)->print("TX: ");
+    for (size_t i = 0; i < frame_length; i++) {
+        log()->printf("%02x ", txFrame[i]);
+    }
+    log()->println();
+
+    serial.getSession()->write(reinterpret_cast<const uint8_t *>(&txFrame), frame_length);
 }

@@ -24,7 +24,7 @@ OneOf<DoNothing, TransitionTo<ReadyState> > HandShakeState::handle(const DataRec
     log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::DEBUGGING)
             ->printf("%s::%s::handle(%s)\r\n", getMachine()->getName(), getName(), event.getName());
 
-    const auto confirmation = getMachine()->rxPacket[9];
+    const auto confirmation = getMachine()->rxFrame[9];
 
     if (confirmation == 0x00) {
         return TransitionTo<ReadyState>{};

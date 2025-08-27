@@ -25,12 +25,12 @@ OneOf<DoNothing, TransitionTo<ReadyState> > GetChipSnState::handle(const DataRec
     log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::DEBUGGING)
             ->printf("%s::%s::handle(%s)\r\n", getMachine()->getName(), getName(), event.getName());
 
-    const auto confirmation = getMachine()->rxPacket[9];
+    const auto confirmation = getMachine()->rxFrame[9];
 
     log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::NOTICE)
             ->printf("serial %02x%02x%02x%02x\r\n",
-                     getMachine()->rxPacket[10], getMachine()->rxPacket[11],
-                     getMachine()->rxPacket[12], getMachine()->rxPacket[13]);
+                     getMachine()->rxFrame[10], getMachine()->rxFrame[11],
+                     getMachine()->rxFrame[12], getMachine()->rxFrame[13]);
 
     if (confirmation == 0x00) {
         return TransitionTo<ReadyState>{};
