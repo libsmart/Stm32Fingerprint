@@ -21,7 +21,7 @@ namespace Stm32Fingerprint {
         };
 
         struct CommandEvent : EventInterface, QueueableEvent {
-            CommandEvent(): CommandEvent(0, nullptr, 0) { ; }
+            CommandEvent() : CommandEvent(0, nullptr, 0) { ; }
 
             explicit CommandEvent(const uint8_t command) : CommandEvent(command, nullptr, 0) { ; }
 
@@ -50,7 +50,32 @@ namespace Stm32Fingerprint {
             }
         };
 
-        struct GetChipSnEvent : EventInterface, QueueableEvent {
+        struct PsWriteRegEvent final : EventInterface, QueueableEvent {
+            PsWriteRegEvent() : PsWriteRegEvent(0, 0) { ; }
+
+            PsWriteRegEvent(const uint8_t address, const uint8_t value)
+                : EventInterface("PsWriteRegEvent"), address(address), value(value) { ; }
+
+            uint8_t address;
+            uint8_t value;
+
+            void setData(const uint8_t *data) override {
+                std::remove_reference_t<decltype(*this)> me;
+                memcpy(&me, data, sizeof(me));
+                address = me.address;
+                value = me.value;
+            }
+        };
+
+        struct PsReadSysParaEvent final : EventInterface, QueueableEvent {
+            PsReadSysParaEvent() : EventInterface("PsReadSysParaEvent") { ; }
+        };
+
+        struct PsReadInfPageEvent final : EventInterface, QueueableEvent {
+            PsReadInfPageEvent() : EventInterface("PsReadInfPageEvent") { ; }
+        };
+
+        struct GetChipSnEvent final : EventInterface, QueueableEvent {
             GetChipSnEvent() : EventInterface("GetChipSnEvent") { ; }
         };
 
@@ -91,6 +116,9 @@ namespace Stm32Fingerprint {
         Events::LoopEvent,
         Events::InitializeEvent,
         Events::CommandEvent,
+        Events::PsWriteRegEvent,
+        Events::PsReadSysParaEvent,
+        Events::PsReadInfPageEvent,
         Events::GetChipSnEvent,
         Events::HandShakeEvent,
         Events::WakeupEvent,

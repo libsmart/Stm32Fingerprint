@@ -48,18 +48,38 @@ namespace AppCore::Command {
                 return runReturn::FINISHED;
             }
 
+            if (std::strcmp(argv[1], "writereg") == 0) {
+                if (argc != 4) {
+                    return runReturn::ERROR;
+                }
+                const auto address = static_cast<uint8_t>(std::strtoul(argv[2], nullptr, DEC));
+                const auto value = static_cast<uint8_t>(std::strtoul(argv[3], nullptr, DEC));
+                fpSensor.enqueueEvent(PsWriteRegEvent{address, value});
+                return runReturn::FINISHED;
+            }
+
             if (std::strcmp(argv[1], "inf") == 0) {
-                fpSensor.enqueueEvent(CommandEvent{Stm32Fingerprint::SensorHiLinkZw0608::PS_ReadINFpage, nullptr, 0});
+                fpSensor.enqueueEvent(PsReadInfPageEvent{});
                 return runReturn::FINISHED;
             }
 
             if (std::strcmp(argv[1], "sys") == 0) {
-                fpSensor.enqueueEvent(CommandEvent{Stm32Fingerprint::SensorHiLinkZw0608::PS_ReadSysPara, nullptr, 0});
+                fpSensor.enqueueEvent(PsReadSysParaEvent{});
                 return runReturn::FINISHED;
             }
 
             if (std::strcmp(argv[1], "cancel") == 0) {
                 fpSensor.enqueueEvent(CommandEvent{Stm32Fingerprint::SensorHiLinkZw0608::PS_Cancel, nullptr, 0});
+                return runReturn::FINISHED;
+            }
+
+            if (std::strcmp(argv[1], "empty") == 0) {
+                fpSensor.enqueueEvent(CommandEvent{Stm32Fingerprint::SensorHiLinkZw0608::PS_Empty, nullptr, 0});
+                return runReturn::FINISHED;
+            }
+
+            if (std::strcmp(argv[1], "restsetting") == 0) {
+                fpSensor.enqueueEvent(CommandEvent{Stm32Fingerprint::SensorHiLinkZw0608::PS_RestSetting, nullptr, 0});
                 return runReturn::FINISHED;
             }
 
@@ -70,6 +90,18 @@ namespace AppCore::Command {
 
             if (std::strcmp(argv[1], "ui") == 0) {
                 fpSensor.enqueueEvent(CommandEvent{Stm32Fingerprint::SensorHiLinkZw0608::PS_UpImage, nullptr, 0});
+                return runReturn::FINISHED;
+            }
+
+            if (std::strcmp(argv[1], "gc") == 0) {
+                constexpr uint8_t data[1]={1};
+                fpSensor.enqueueEvent(CommandEvent{Stm32Fingerprint::SensorHiLinkZw0608::PS_GenChar, data, sizeof(data)});
+                return runReturn::FINISHED;
+            }
+
+            if (std::strcmp(argv[1], "uc") == 0) {
+                constexpr uint8_t data[1]={2};
+                fpSensor.enqueueEvent(CommandEvent{Stm32Fingerprint::SensorHiLinkZw0608::PS_UpChar, data, sizeof(data)});
                 return runReturn::FINISHED;
             }
 

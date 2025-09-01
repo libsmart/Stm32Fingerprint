@@ -192,6 +192,12 @@ void SensorHiLinkZw0608::parseReply() {
             case parserState_t::DONE: {
                 parserState = parserState_t::DONE;
 
+                log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::INFORMATIONAL)->print("RX: ");
+                for (size_t i = 0; i < rxData.packetLength + DATA_OFFSET; i++) {
+                    log()->printf("%02x ", rxFrame[i]);
+                }
+                log()->println();
+
                 log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::NOTICE)
                         ->printf("Header         0x%04x\r\n", rxData.header);
 
@@ -210,11 +216,6 @@ void SensorHiLinkZw0608::parseReply() {
                 log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::NOTICE)
                         ->printf("Checksum       0x%04x (%d)\r\n", rxData.checksum, rxData.checksum);
 
-                log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::INFORMATIONAL)->print("RX: ");
-                for (size_t i = 0; i < rxData.packetLength + DATA_OFFSET; i++) {
-                    log()->printf("%02x ", rxFrame[i]);
-                }
-                log()->println();
 
                 handle(DataReceivedEvent{});
 

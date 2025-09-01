@@ -12,11 +12,13 @@ using namespace Stm32Fingerprint::States;
 Status CommandState::onEnter(const CommandEvent &event) {
     log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::DEBUGGING)
             ->printf("%s::%s::onEnter(%s) command=%02x dataLength=%d\r\n",
-                getMachine()->getName(), getName(), event.getName(), event.command, event.dataLength);
+                     getMachine()->getName(), getName(), event.getName(), event.command, event.dataLength);
 
     stateEnteredMillis = millis();
 
-    getMachine()->sendCommand(event.command, event.data, event.dataLength);
+    command = event.command;
+
+    getMachine()->sendCommand(command, event.data, event.dataLength);
 
     return Continue{};
 }
@@ -29,19 +31,24 @@ OneOf<DoNothing, TransitionTo<ReadyState> > CommandState::handle(const DataRecei
 
     const auto size = getMachine()->rxData.packetLength - 3;
 
-    Stm32Common::String::FixedString<50> str;
-    for(int i=0; i < size; i++) {
-        str.printf("%02x", getMachine()->rxData.data[i + 1]);
-    }
-
-    log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::NOTICE)
-            ->printf("DATA (%d) : \"%s\"\r\n", size, str.c_str());
-
-
-
     if (confirmation == 0x00) {
+        Stm32Common::String::FixedString<50> str;
+        for (int i = 0; i < size; i++) {
+            str.printf("%02x", getMachine()->rxData.data[i + 1]);
+        }
+
+        log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::NOTICE)
+                ->printf("DATA (%d) : \"%s\"\r\n", size, str.c_str());
+
+        log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::NOTICE)
+                ->printf("CommandState(%02x): OK\r\n", command);
+
         return TransitionTo<ReadyState>{};
     }
+
+    log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::ERROR)
+            ->printf("CommandState(%02x): ERROR %02x\r\n", command, confirmation);
+
 
     return DoNothing{};
 }
