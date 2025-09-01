@@ -46,6 +46,16 @@ OneOf<DoNothing, TransitionTo<ReadyState> > CommandState::handle(const DataRecei
     return DoNothing{};
 }
 
+/**
+ * Handles the processing of a given LoopEvent in the CommandState.
+ *
+ * Checks if the current state has been active beyond a pre-defined timeout
+ * (TIMEOUT_CMD). If the timeout is exceeded, a TimeoutEvent is enqueued into
+ * the state machine.
+ *
+ * @param event The LoopEvent object received for processing.
+ * @return A DoNothing action which signifies no specific transition occurs.
+ */
 DoNothing CommandState::handle(const LoopEvent &event) {
     if (millis() - stateEnteredMillis > TIMEOUT_CMD) {
         getMachine()->enqueueEvent(TimeoutEvent{});

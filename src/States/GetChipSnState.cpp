@@ -15,7 +15,7 @@ Status GetChipSnState::onEnter(const GetChipSnEvent &event) {
 
     stateEnteredMillis = millis();
 
-    const uint8_t data[1]{};
+    constexpr uint8_t data[1]{};
     getMachine()->sendCommand(SensorHiLinkZw0608::Command::PS_GetChipSN, data, 1);
 
     return Continue{};
@@ -40,7 +40,7 @@ OneOf<DoNothing, TransitionTo<ReadyState> > GetChipSnState::handle(const DataRec
 }
 
 DoNothing GetChipSnState::handle(const LoopEvent &event) {
-    if (millis() - stateEnteredMillis > 500) {
+    if (millis() - stateEnteredMillis > TIMEOUT_CMD) {
         getMachine()->enqueueEvent(TimeoutEvent{});
     }
     return {};
