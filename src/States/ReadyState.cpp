@@ -13,6 +13,8 @@ Status ReadyState::onEnter(const EventInterface &event) {
     log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::DEBUGGING)
             ->printf("%s::%s::onEnter(%s)\r\n", getMachine()->getName(), getName(), event.getName());
 
+    getMachine()->flags.set(static_cast<ULONG>(SensorHiLinkZw0608::flags_t::READY));
+
     return Continue{};
 }
 

@@ -28,6 +28,7 @@ OneOf<DoNothing, TransitionTo<ReadyState> > CommandState::handle(const DataRecei
             ->printf("%s::%s::handle(%s)\r\n", getMachine()->getName(), getName(), event.getName());
 
     const auto confirmation = getMachine()->rxData.data[0];
+    getMachine()->lastConfirmationCode = Confirmation::Code{confirmation};
 
     const auto size = getMachine()->rxData.packetLength - 3;
 
@@ -50,7 +51,8 @@ OneOf<DoNothing, TransitionTo<ReadyState> > CommandState::handle(const DataRecei
             ->printf("CommandState(%02x): ERROR %02x\r\n", command, confirmation);
 
 
-    return DoNothing{};
+    return TransitionTo<ReadyState>{};
+    // return DoNothing{};
 }
 
 /**

@@ -38,6 +38,7 @@ namespace Stm32Fingerprint {
         private:
             uint32_t stateEnteredMillis = 0;
             static constexpr uint32_t TIMEOUT_CMD = 1000;
+            PsReadSysParaEvent::sysPara_t *sysPara{};
         };
     }
 }

@@ -17,19 +17,19 @@ namespace Stm32Fingerprint {
     class SensorHiLinkZw0608;
 
     namespace States {
-        struct PsWriteRegState final
+        struct PsUpCharState final
                 : StateInterface<SensorHiLinkZw0608>,
                   Will<
                       ByDefault<DoNothing>,
                       On<TimeoutEvent, TransitionTo<ReadyState> >,
                       On<ResetEvent, TransitionTo<ResetState> >
                   > {
-            PsWriteRegState(const char *name, SensorHiLinkZw0608 *machine, Stm32ItmLogger::LoggerInterface *logger)
+            PsUpCharState(const char *name, SensorHiLinkZw0608 *machine, Stm32ItmLogger::LoggerInterface *logger)
                 : StateInterface(name, machine, logger) { ; }
 
             using Will::handle;
 
-            Status onEnter(const PsWriteRegEvent &event);
+            Status onEnter(const PsUpCharEvent &event);
 
             OneOf<DoNothing, TransitionTo<ReadyState>> handle(const DataReceivedEvent &event);
 
@@ -38,9 +38,11 @@ namespace Stm32Fingerprint {
         private:
             uint32_t stateEnteredMillis = 0;
             static constexpr uint32_t TIMEOUT_CMD = 1000;
-
-            uint8_t regAddress = 0;
-            uint8_t regValue = 0;
+            PsUpCharEvent::template_t *tpl{};
+            BufferId bufferId = 1;
+            size_t bufferOffset{};
+            size_t downloadSize{};
+            void restartTimeout();
         };
     }
 }

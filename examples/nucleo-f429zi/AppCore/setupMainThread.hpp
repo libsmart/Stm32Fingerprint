@@ -8,7 +8,7 @@
 
 #include "app_threadx.h"
 
-#define MAIN_THREAD_STACK_SIZE (4 * 1024)
+#define MAIN_THREAD_STACK_SIZE (5 * 1024)
 
 #ifdef __cplusplus
 extern "C" {

@@ -26,6 +26,7 @@ OneOf<DoNothing, TransitionTo<ReadyState> > PsReadInfPageState::handle(const Dat
 
     const auto packageId = getMachine()->rxFrame[6];
     const auto confirmation = getMachine()->rxFrame[9];
+    getMachine()->lastConfirmationCode = static_cast<Confirmation::Code>(confirmation);
 
 
     constexpr auto be16 = [](const uint8_t *p) -> uint16_t {

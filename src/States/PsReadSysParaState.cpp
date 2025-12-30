@@ -15,6 +15,8 @@ Status PsReadSysParaState::onEnter(const PsReadSysParaEvent &event) {
 
     stateEnteredMillis = millis();
 
+    sysPara = event.sysPara;
+
     getMachine()->sendCommand(SensorHiLinkZw0608::Command::PS_ReadSysPara, nullptr, 0);
 
     return Continue{};
@@ -25,6 +27,7 @@ OneOf<DoNothing, TransitionTo<ReadyState> > PsReadSysParaState::handle(const Dat
             ->printf("%s::%s::handle(%s)\r\n", getMachine()->getName(), getName(), event.getName());
 
     const auto confirmation = getMachine()->rxFrame[9];
+    getMachine()->lastConfirmationCode = static_cast<Confirmation::Code>(confirmation);
 
 
     constexpr auto be16 = [](const uint8_t *p) -> uint16_t {
@@ -39,6 +42,16 @@ OneOf<DoNothing, TransitionTo<ReadyState> > PsReadSysParaState::handle(const Dat
     if (confirmation == 0x00) {
         log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::NOTICE)
                 ->printf("PS_ReadSysPara(): OK\r\n");
+
+        if (sysPara != nullptr) {
+            sysPara->number = be16(&getMachine()->rxFrame[10]);
+            sysPara->templateSize = be16(&getMachine()->rxFrame[12]);
+            sysPara->databaseCapacity = be16(&getMachine()->rxFrame[14]);
+            sysPara->scoreLevelCode = be16(&getMachine()->rxFrame[16]);
+            sysPara->deviceAddress = be32(&getMachine()->rxFrame[18]);
+            sysPara->packetSize = be16(&getMachine()->rxFrame[22]);
+            sysPara->baudRate = be16(&getMachine()->rxFrame[24]) * 9600;
+        }
 
         log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::NOTICE);
         log()->printf(" 1                 : %d\r\n", be16(&getMachine()->rxFrame[10]));

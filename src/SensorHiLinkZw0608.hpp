@@ -5,8 +5,9 @@
 
 #pragma once
 
-#include <libsmart_config.hpp>
 #include <main.h>
+#include <libsmart_config.hpp>
+#include <chrono>
 
 #include "PinDigitalIn.hpp"
 #include "PinDigitalOut.hpp"
@@ -14,7 +15,10 @@
 #include "FSM/ThreadXStateMachine.hpp"
 #include "SensorEvents.hpp"
 #include "SensorStates.hpp"
+#include "EventFlags/EventFlags.hpp"
 #include "States/PsReadInfPageState.hpp"
+#include "Types/Confirmation.hpp"
+#include "Types/Types.hpp"
 
 namespace Stm32Fingerprint {
     using SensorStateMachine = ThreadXStateMachine<
@@ -23,7 +27,9 @@ namespace Stm32Fingerprint {
         States::InitializeState,
         States::ReadyState,
         States::CommandState,
-        States::PsWriteRegState,
+        States::PsUpCharState,
+        States::PsUpImageState,
+        States::PsDownImageState,
         States::PsReadSysParaState,
         States::PsReadInfPageState,
         States::GetChipSnState,
@@ -46,7 +52,9 @@ namespace Stm32Fingerprint {
                   States::InitializeState{"INIT", this, &logger},
                   States::ReadyState{"READY", this, &logger},
                   States::CommandState{"CMD", this, &logger},
-                  States::PsWriteRegState{"PS_WriteReg", this, &logger},
+                  States::PsUpCharState{"PS_UpChar", this, &logger},
+                  States::PsUpImageState{"PS_UpImage", this, &logger},
+                  States::PsDownImageState{"PS_DownImage", this, &logger},
                   States::PsReadSysParaState{"PS_ReadSysPara", this, &logger},
                   States::PsReadInfPageState{"PS_ReadINFpage", this, &logger},
                   States::GetChipSnState{"PS_GetChipSN", this, &logger},
@@ -63,13 +71,49 @@ namespace Stm32Fingerprint {
         friend States::InitializeState;
         friend States::ReadyState;
         friend States::CommandState;
-        friend States::PsWriteRegState;
+        friend States::PsUpCharState;
+        friend States::PsUpImageState;
+        friend States::PsDownImageState;
         friend States::PsReadSysParaState;
         friend States::PsReadInfPageState;
         friend States::GetChipSnState;
         friend States::HandShakeState;
         friend States::ResetState;
         friend States::ErrorState;
+
+        static constexpr uint8_t swapEndian(const uint8_t val) { return val; };
+
+        static constexpr uint16_t swapEndian(const uint16_t val) {
+            return (val << 8) | (val >> 8);
+        };
+
+        static constexpr uint32_t swapEndian(const uint32_t val) {
+            return ((val & 0x000000FFU) << 24) |
+                   ((val & 0x0000FF00U) << 8) |
+                   ((val & 0x00FF0000U) >> 8) |
+                   ((val & 0xFF000000U) >> 24);
+        };
+
+        static constexpr uint64_t swapEndian(const uint64_t val) {
+            return ((val & 0x00000000000000FFULL) << 56) |
+                   ((val & 0x000000000000FF00ULL) << 40) |
+                   ((val & 0x0000000000FF0000ULL) << 24) |
+                   ((val & 0x00000000FF000000ULL) << 8) |
+                   ((val & 0x000000FF00000000ULL) >> 8) |
+                   ((val & 0x0000FF0000000000ULL) >> 24) |
+                   ((val & 0x00FF000000000000ULL) >> 40) |
+                   ((val & 0xFF00000000000000ULL) >> 56);
+        };
+
+        static constexpr auto be16 = [](const uint8_t *p) -> uint16_t {
+            return (static_cast<uint16_t>(p[0]) << 8) | static_cast<uint16_t>(p[1]);
+        };
+
+        static constexpr auto be32 = [](const uint8_t *p) -> uint32_t {
+            return (static_cast<uint32_t>(p[0]) << 24) | (static_cast<uint32_t>(p[1]) << 16) |
+                   (static_cast<uint32_t>(p[2]) << 8) | static_cast<uint32_t>(p[3]);
+        };
+
 
         void setup() override;
 
@@ -115,6 +159,13 @@ namespace Stm32Fingerprint {
         Stm32Serial::Stm32Serial &serial;
 
         uint32_t address = 0xffffffff;
+
+        using flags_t = enum class flags_t: ULONG {
+            READY = 1 << 0,
+            COMMAND = 1 << 1,
+            PARSING = 1 << 2,
+        };
+        Stm32ThreadX::EventFlags flags{"flags"};
 
         uint8_t txFrame[MAX_TX_FRAME_SIZE]{};
         uint8_t rxFrame[MAX_RX_FRAME_SIZE]{};
@@ -199,11 +250,115 @@ namespace Stm32Fingerprint {
             PS_SecuritySearch = 0xe4,
 
 
-
-
             NONE = 0xff
-
-
         };
+
+
+
+        ConfirmationResult getImage();
+
+        ConfirmationResult genChar(BufferId bufferId);
+
+        MatchConfirmationResult match();
+
+        SearchConfirmationResult search(BufferId bufferId, uint16_t startPage, uint16_t countPage);
+
+        ConfirmationResult regModel();
+
+        ConfirmationResult storeChar(BufferId bufferId, PageId pageId);
+
+        ConfirmationResult loadChar(BufferId bufferId, PageId pageId);
+
+        ConfirmationResult upChar(BufferId bufferId, PsUpCharEvent::template_t &tpl);
+
+        ConfirmationResult downChar(BufferId bufferId, const PsUpCharEvent::template_t &tpl);
+
+        ConfirmationResult upImage(PsUpImageEvent::image_t &image);
+
+        ConfirmationResult downImage(PsDownImageEvent::image_t &image);
+
+        ConfirmationResult deleteChar(PageId pageId, uint16_t count);
+
+        ConfirmationResult empty();
+
+        using register_t = enum class register_t : uint8_t {
+            SERIAL_PORT_DELAY = 0,
+            NUMBER_OF_REGISTRATIONS = 1,
+            IMAGE_FORMAT = 2,
+            REGISTER_LOGIC = 3,
+            BAUD_RATE = 4,
+            COMPARISON_THRESHOLD = 5,
+            PACKET_SIZE = 6,
+            ENCRYPTION_LEVEL = 7,
+            ANTI_FAKE_FINGERPRINT = 8,
+            SENSOR_PARAMETERS = 9,
+        };
+
+        ConfirmationResult writeReg(register_t reg, uint8_t content);
+
+        ConfirmationResult readSysPara(PsReadSysParaEvent::sysPara_t &sysPara);
+
+        ConfirmationResult setPwd(Password password);
+
+        ConfirmationResult vfyPwd(Password password);
+
+        GetRandomCodeConfirmationResult getRandomCode();
+
+        ConfirmationResult setChipAddr(DeviceAddress deviceAddress);
+
+        ReadInfPageConfirmationResult readInfPage();
+
+        ConfirmationResult writeNotepad(NotepadPageId notepadPageId, NotepadPageContent content);
+
+        ConfirmationResult readNotepad(NotepadPageId notepadPageId, NotepadPageContent &content);
+
+        ConfirmationResult burnCode(UpgradeMode upgradeMode);
+
+        ValidTemplateNumConfirmationResult validTemplateNum();
+
+        ReadIndexTableConfirmationResult readIndexTable(IndexPageId indexPageId);
+
+        ConfirmationResult getEnrollImage();
+
+        ConfirmationResult cancel();
+
+        AutoEnrollConfirmationResult autoEnroll(FingerprintId fingerprintId, uint8_t numberOfEntries, AutoEnrollParameter parameter);
+
+        AutoIdentifyConfirmationResult autoIdentify(ScoreLevel scoreLevel, FingerprintId fingerprintId, AutoIdentifyParameter parameter);
+
+        ConfirmationResult sleep();
+
+        GetChipSnConfirmationResult getChipSN();
+
+        ConfirmationResult handShake();
+
+        ConfirmationResult checkSensor();
+
+        ConfirmationResult restSetting();
+
+        ConfirmationResult controlBLN(ControlBLNFunction function, ControlBLNColor startColor, ControlBLNColor endColor, uint8_t cycles);
+
+        GetImageInfoConfirmationResult getImageInfo();
+
+        SearchNowConfirmationResult searchNow(PageId startPage, uint16_t pageCount);
+
+
+
+    private:
+        Confirmation lastConfirmationCode = Confirmation::Code::UNKNOWN;
+        static constexpr uint32_t DEFAULT_WAIT{1000};
+        void clearReadyFlag() { flags.clear(static_cast<ULONG>(flags_t::READY)); }
+
+        void awaitReadyFlag(const uint32_t timeout = DEFAULT_WAIT) {
+            const auto ret = flags.await(static_cast<ULONG>(flags_t::READY), {timeout});
+            switch (ret) {
+                case TX_SUCCESS: return;
+                case TX_NO_EVENTS:
+                    lastConfirmationCode = Confirmation::Code::ERROR_TIMEOUT;
+                    return;
+                default:
+                    lastConfirmationCode = Confirmation::Code::ERROR_GENERIC;
+            }
+        }
     };
 }

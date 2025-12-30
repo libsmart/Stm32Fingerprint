@@ -19,7 +19,6 @@
 #include "RunThreadOnce.hpp"
 #include "Stm32NetX.hpp"
 #include "Command/RegisterCommands.hpp"
-#include "Dns/Dns.hpp"
 
 
 /**

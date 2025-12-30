@@ -25,6 +25,7 @@ OneOf<DoNothing, TransitionTo<ReadyState> > HandShakeState::handle(const DataRec
             ->printf("%s::%s::handle(%s)\r\n", getMachine()->getName(), getName(), event.getName());
 
     const auto confirmation = getMachine()->rxFrame[9];
+    getMachine()->lastConfirmationCode = static_cast<Confirmation::Code>(confirmation);
 
     if (confirmation == 0x00) {
         return TransitionTo<ReadyState>{};

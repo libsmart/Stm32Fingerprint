@@ -17,33 +17,29 @@ namespace Stm32Fingerprint {
     class SensorHiLinkZw0608;
 
     namespace States {
-        struct ReadyState
+        struct PsDownImageState final
                 : StateInterface<SensorHiLinkZw0608>,
                   Will<
                       ByDefault<DoNothing>,
-                      On<CommandEvent, TransitionTo<CommandState> >,
-                      On<PsUpCharEvent, TransitionTo<PsUpCharState> >,
-                      On<PsUpImageEvent, TransitionTo<PsUpImageState> >,
-                      On<PsDownImageEvent, TransitionTo<PsDownImageState> >,
-                      On<PsReadSysParaEvent, TransitionTo<PsReadSysParaState> >,
-                      On<PsReadInfPageEvent, TransitionTo<PsReadInfPageState> >,
-                      On<GetChipSnEvent, TransitionTo<GetChipSnState> >,
-                      On<HandShakeEvent, TransitionTo<HandShakeState> >,
+                      On<TimeoutEvent, TransitionTo<ReadyState> >,
                       On<ResetEvent, TransitionTo<ResetState> >
                   > {
-            ReadyState(const char *name, SensorHiLinkZw0608 *machine, Stm32ItmLogger::LoggerInterface *logger)
+            PsDownImageState(const char *name, SensorHiLinkZw0608 *machine, Stm32ItmLogger::LoggerInterface *logger)
                 : StateInterface(name, machine, logger) { ; }
 
             using Will::handle;
 
-            Status onEnter(const EventInterface &event);
+            Status onEnter(const PsDownImageEvent &event);
 
-            DoNothing handle(const DetectEvent &event);
+            OneOf<DoNothing, TransitionTo<ReadyState>> handle(const DataReceivedEvent &event);
 
             DoNothing handle(const LoopEvent &event);
 
         private:
             uint32_t stateEnteredMillis = 0;
+            static constexpr uint32_t TIMEOUT_CMD = 1000;
+            PsDownImageEvent::image_t *image{};
+            void restartTimeout();
         };
     }
 }

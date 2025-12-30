@@ -5,8 +5,11 @@
 
 #pragma once
 
+#include <optional>
+
 #include "FSM/EventInterface.hpp"
 #include "String/FixedString.hpp"
+#include "Types/Types.hpp"
 
 using namespace AppCore::FSM;
 
@@ -50,25 +53,91 @@ namespace Stm32Fingerprint {
             }
         };
 
-        struct PsWriteRegEvent final : EventInterface, QueueableEvent {
-            PsWriteRegEvent() : PsWriteRegEvent(0, 0) { ; }
+        struct PsUpCharEvent final : EventInterface, QueueableEvent {
+            using template_t = struct template_t {
+                size_t size;
+                uint8_t *data;
+            };
 
-            PsWriteRegEvent(const uint8_t address, const uint8_t value)
-                : EventInterface("PsWriteRegEvent"), address(address), value(value) { ; }
+            PsUpCharEvent() : PsUpCharEvent(1, nullptr) { ; }
 
-            uint8_t address;
-            uint8_t value;
+            explicit PsUpCharEvent(const uint8_t bufferId, template_t *tpl)
+                : EventInterface("PsUpCharEvent"), bufferId(bufferId) { PsUpCharEvent::tpl = tpl; }
+
+            BufferId bufferId;
+            template_t *tpl{};
 
             void setData(const uint8_t *data) override {
                 std::remove_reference_t<decltype(*this)> me;
                 memcpy(&me, data, sizeof(me));
-                address = me.address;
-                value = me.value;
+                tpl = me.tpl;
+                bufferId = me.bufferId;
+            }
+        };
+
+        struct PsUpImageEvent final : EventInterface, QueueableEvent {
+            using image_t = struct image_t {
+                size_t size;
+                uint8_t *data;
+            };
+
+            PsUpImageEvent() : PsUpImageEvent(nullptr) { ; }
+
+            explicit PsUpImageEvent(image_t *image)
+                : EventInterface("PsUpImageEvent") { PsUpImageEvent::image = image; }
+
+            image_t *image{};
+
+            void setData(const uint8_t *data) override {
+                std::remove_reference_t<decltype(*this)> me;
+                memcpy(&me, data, sizeof(me));
+                image = me.image;
+            }
+        };
+
+        struct PsDownImageEvent final : EventInterface, QueueableEvent {
+            using image_t = struct image_t {
+                size_t size;
+                uint8_t *data;
+            };
+
+            PsDownImageEvent() : PsDownImageEvent(nullptr) { ; }
+
+            explicit PsDownImageEvent(image_t *image)
+                : EventInterface("PsDownImageEvent") { PsDownImageEvent::image = image; }
+
+            image_t *image{};
+
+            void setData(const uint8_t *data) override {
+                std::remove_reference_t<decltype(*this)> me;
+                memcpy(&me, data, sizeof(me));
+                image = me.image;
             }
         };
 
         struct PsReadSysParaEvent final : EventInterface, QueueableEvent {
-            PsReadSysParaEvent() : EventInterface("PsReadSysParaEvent") { ; }
+            using sysPara_t = struct sysPara_t {
+                uint16_t number;
+                uint16_t templateSize;
+                uint16_t databaseCapacity;
+                uint16_t scoreLevelCode;
+                uint32_t deviceAddress;
+                uint16_t packetSize;
+                uint16_t baudRate;
+            };
+
+            PsReadSysParaEvent() : PsReadSysParaEvent(nullptr) { ; }
+
+            explicit PsReadSysParaEvent(sysPara_t *sysPara)
+                : EventInterface("PsReadSysParaEvent") { PsReadSysParaEvent::sysPara = sysPara; }
+
+            sysPara_t *sysPara{};
+
+            void setData(const uint8_t *data) override {
+                std::remove_reference_t<decltype(*this)> me;
+                memcpy(&me, data, sizeof(me));
+                sysPara = me.sysPara;
+            }
         };
 
         struct PsReadInfPageEvent final : EventInterface, QueueableEvent {
@@ -116,7 +185,9 @@ namespace Stm32Fingerprint {
         Events::LoopEvent,
         Events::InitializeEvent,
         Events::CommandEvent,
-        Events::PsWriteRegEvent,
+        Events::PsUpCharEvent,
+        Events::PsUpImageEvent,
+        Events::PsDownImageEvent,
         Events::PsReadSysParaEvent,
         Events::PsReadInfPageEvent,
         Events::GetChipSnEvent,
