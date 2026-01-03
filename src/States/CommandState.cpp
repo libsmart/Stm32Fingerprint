@@ -8,11 +8,12 @@
 
 using namespace Stm32Fingerprint::Events;
 using namespace Stm32Fingerprint::States;
+using Severity = Stm32ItmLogger::LoggerInterface::Severity;
 
 Status CommandState::onEnter(const CommandEvent &event) {
-    log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::DEBUGGING)
-            ->printf("%s::%s::onEnter(%s) command=%02x dataLength=%d\r\n",
-                     getMachine()->getName(), getName(), event.getName(), event.command, event.dataLength);
+    log(Severity::DEBUGGING)->printf("%s::%s::onEnter(%s) command=%02x dataLength=%d\r\n",
+                                     getMachine()->getName(), getName(), event.getName(), event.command,
+                                     event.dataLength);
 
     stateEnteredMillis = millis();
 
@@ -24,8 +25,7 @@ Status CommandState::onEnter(const CommandEvent &event) {
 }
 
 OneOf<DoNothing, TransitionTo<ReadyState> > CommandState::handle(const DataReceivedEvent &event) {
-    log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::DEBUGGING)
-            ->printf("%s::%s::handle(%s)\r\n", getMachine()->getName(), getName(), event.getName());
+    log(Severity::DEBUGGING)->printf("%s::%s::handle(%s)\r\n", getMachine()->getName(), getName(), event.getName());
 
     const auto confirmation = getMachine()->rxData.data[0];
     getMachine()->lastConfirmationCode = Confirmation::Code{confirmation};
@@ -38,17 +38,13 @@ OneOf<DoNothing, TransitionTo<ReadyState> > CommandState::handle(const DataRecei
             str.printf("%02x", getMachine()->rxData.data[i + 1]);
         }
 
-        log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::NOTICE)
-                ->printf("DATA (%d) : \"%s\"\r\n", size, str.c_str());
-
-        log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::NOTICE)
-                ->printf("CommandState(%02x): OK\r\n", command);
+        log(Severity::NOTICE)->printf("CommandState(%02x): OK\r\n", command);
 
         return TransitionTo<ReadyState>{};
     }
 
-    log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::ERROR)
-            ->printf("CommandState(%02x): ERROR %02x\r\n", command, confirmation);
+    log(Severity::ERROR)->printf("CommandState(%02x): %s (%02x)\r\n", command,
+                                 getMachine()->lastConfirmationCode.to_string(), getMachine()->lastConfirmationCode);
 
 
     return TransitionTo<ReadyState>{};

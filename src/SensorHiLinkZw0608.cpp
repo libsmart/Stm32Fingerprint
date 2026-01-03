@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 Roland Rusch, easy-smart solution GmbH <roland.rusch@easy-smart.ch>
+ * SPDX-FileCopyrightText: 2026 Roland Rusch, easy-smart solution GmbH <roland.rusch@easy-smart.ch>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -9,6 +9,7 @@
 extern Stm32Common::StreamSession::Manager<Stm32Common::StreamSession::GeneralStreamSession, 1> fpSessionManager;
 
 using namespace Stm32Fingerprint;
+using Severity = Stm32ItmLogger::LoggerInterface::Severity;
 
 void SensorHiLinkZw0608::setup() {
     pinDetect.setup();
@@ -79,11 +80,11 @@ void SensorHiLinkZw0608::parseReply() {
     const volatile auto buf = rxBuffer->getReadPointer();
 
     /*
-    log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::INFORMATIONAL)->print("FP: ");
+    log(Severity::NOTICE)->print("FP: ");
     for (size_t i = 0; i < available; i++) {
-        log()->printf("%02x ", buf[i]);
+        log(Severity::NOTICE)->printf("%02x ", buf[i]);
     }
-    log()->println();
+    log(Severity::NOTICE)->println();
     */
 
     size_t frame_length = 0;
@@ -193,28 +194,28 @@ void SensorHiLinkZw0608::parseReply() {
             case parserState_t::DONE: {
                 parserState = parserState_t::DONE;
 
-                log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::INFORMATIONAL)->print("RX: ");
+                log(Severity::NOTICE)->print("RX: ");
                 for (size_t i = 0; i < rxData.packetLength + DATA_OFFSET; i++) {
-                    log()->printf("%02x ", rxFrame[i]);
+                    log(Severity::NOTICE)->printf("%02x ", rxFrame[i]);
                 }
-                log()->println();
+                log(Severity::NOTICE)->println();
 
-                log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::NOTICE)
+                log(Severity::NOTICE)
                         ->printf("Header         0x%04x\r\n", rxData.header);
 
-                log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::NOTICE)
+                log(Severity::NOTICE)
                         ->printf("Device address 0x%08x\r\n", rxData.address);
 
-                log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::NOTICE)
+                log(Severity::NOTICE)
                         ->printf("Package ID     0x%02x\r\n", rxData.packageId);
 
-                log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::NOTICE)
+                log(Severity::NOTICE)
                         ->printf("Package length 0x%04x (%d)\r\n", rxData.packetLength, rxData.packetLength);
 
-                log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::NOTICE)
+                log(Severity::NOTICE)
                         ->printf("confirmation   0x%02x\r\n", rxData.data[0]);
 
-                log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::NOTICE)
+                log(Severity::NOTICE)
                         ->printf("Checksum       0x%04x (%d)\r\n", rxData.checksum, rxData.checksum);
 
 
@@ -272,11 +273,11 @@ void SensorHiLinkZw0608::sendPacket(const uint8_t packetId, const uint8_t *data,
 
     *checksum = __builtin_bswap16(calc_checksum(reinterpret_cast<uint8_t *>(&txFrame), 6, frame_length - 2));
 
-    log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::INFORMATIONAL)->print("TX: ");
+    log(Severity::NOTICE)->print("TX: ");
     for (size_t i = 0; i < frame_length; i++) {
-        log()->printf("%02x ", txFrame[i]);
+        log(Severity::NOTICE)->printf("%02x ", txFrame[i]);
     }
-    log()->println();
+    log(Severity::NOTICE)->println();
 
     serial.getSession()->write(reinterpret_cast<const uint8_t *>(&txFrame), frame_length);
 }
