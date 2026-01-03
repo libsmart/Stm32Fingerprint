@@ -9,6 +9,7 @@
 #include "Fingerprint.hpp"
 #include "Info.hpp"
 #include "Set.hpp"
+#include "Reboot.hpp"
 #include "ezShell/Shell.hpp"
 #include "ezShell/Command/Help.hpp"
 
@@ -18,6 +19,7 @@ namespace AppCore::Command {
     inline ::Command::Help help;
     inline Info info;
     inline Set set;
+    inline Reboot reboot;
     inline Fingerprint fingerprint;
 
     /**
@@ -36,6 +38,7 @@ namespace AppCore::Command {
             Shell::registerCmd(&info);
             Shell::registerCmd(&help);
             Shell::registerCmd(&set);
+            Shell::registerCmd(&reboot);
             Shell::registerCmd(&fingerprint);
         }
     };
