@@ -15,6 +15,7 @@ namespace Stm32Fingerprint::States {
     struct PsDownImageState;
     struct PsReadSysParaState;
     struct PsReadInfPageState;
+    struct PsAutoIdentifyState;
     struct GetChipSnState;
     struct HandShakeState;
     struct ResetState;
@@ -30,6 +31,7 @@ namespace Stm32Fingerprint::States {
 #include "States/PsDownImageState.hpp"
 #include "States/PsReadSysParaState.hpp"
 #include "States/PsReadInfPageState.hpp"
+#include "States/PsAutoIdentifyState.hpp"
 #include "States/GetChipSnState.hpp"
 #include "States/HandShakeState.hpp"
 #include "States/ResetState.hpp"

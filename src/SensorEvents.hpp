@@ -144,6 +144,29 @@ namespace Stm32Fingerprint {
             PsReadInfPageEvent() : EventInterface("PsReadInfPageEvent") { ; }
         };
 
+        struct PsAutoIdentifyEvent final : EventInterface, QueueableEvent {
+            PsAutoIdentifyEvent() : PsAutoIdentifyEvent(0, 0, AutoIdentifyParameter{0}, nullptr) { ; }
+
+            PsAutoIdentifyEvent(const ScoreLevel score_level, const FingerprintId fingerprint_id,
+                                const AutoIdentifyParameter parameter, const AutoIdentifyResult *result)
+                : EventInterface("PsAutoIdentifyEvent"),
+                  scoreLevel(score_level), fingerprintId(fingerprint_id), parameter(parameter), result(result) { ; }
+
+            ScoreLevel scoreLevel;
+            FingerprintId fingerprintId;
+            AutoIdentifyParameter parameter;
+            const AutoIdentifyResult *result;
+
+            void setData(const uint8_t *data) override {
+                std::remove_reference_t<decltype(*this)> me;
+                memcpy(&me, data, sizeof(me));
+                scoreLevel = me.scoreLevel;
+                fingerprintId = me.fingerprintId;
+                parameter = me.parameter;
+                result = me.result;
+            }
+        };
+
         struct GetChipSnEvent final : EventInterface, QueueableEvent {
             GetChipSnEvent() : EventInterface("GetChipSnEvent") { ; }
         };
@@ -190,6 +213,7 @@ namespace Stm32Fingerprint {
         Events::PsDownImageEvent,
         Events::PsReadSysParaEvent,
         Events::PsReadInfPageEvent,
+        Events::PsAutoIdentifyEvent,
         Events::GetChipSnEvent,
         Events::HandShakeEvent,
         Events::WakeupEvent,

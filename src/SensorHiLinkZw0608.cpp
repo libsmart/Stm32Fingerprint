@@ -534,16 +534,31 @@ ValidTemplateNumConfirmationResult SensorHiLinkZw0608::validTemplateNum() {
 }
 
 ReadIndexTableConfirmationResult SensorHiLinkZw0608::readIndexTable(IndexPageId indexPageId) {
-    return ReadIndexTableConfirmationResult::err(Confirmation::Code::ERROR_NOT_IMPLEMENTED);
-    // clearReadyFlag();
-    // enqueueEvent(CommandEvent{PS_ValidTemplateNum});
-    // awaitReadyFlag();
-    // if (lastConfirmationCode != Confirmation::Code::OK)
-    // return ReadIndexTableConfirmationResult::err(lastConfirmationCode);
-    // auto ret = ReadIndexTableConfirmationResult::ok({});
-    // constexpr size_t BASE = 9;
-    // std::memcpy((void *) ret.value().index, &rxFrame[BASE + 0], 32);
-    // return ret;
+    clearReadyFlag();
+    enqueueEvent(CommandEvent{PS_ReadIndexTable, (uint8_t *) &indexPageId, sizeof(indexPageId)});
+    awaitReadyFlag();
+    if (lastConfirmationCode != Confirmation::Code::OK)
+        return ReadIndexTableConfirmationResult::err(lastConfirmationCode);
+    constexpr size_t BASE = 9;
+    const auto ret = ReadIndexTableConfirmationResult::ok({
+        static_cast<uint16_t>(rxFrame[BASE + 0] << 8 | rxFrame[BASE + 1]),
+        static_cast<uint16_t>(rxFrame[BASE + 2] << 8 | rxFrame[BASE + 3]),
+        static_cast<uint16_t>(rxFrame[BASE + 4] << 8 | rxFrame[BASE + 5]),
+        static_cast<uint16_t>(rxFrame[BASE + 6] << 8 | rxFrame[BASE + 7]),
+        static_cast<uint16_t>(rxFrame[BASE + 8] << 8 | rxFrame[BASE + 9]),
+        static_cast<uint16_t>(rxFrame[BASE + 10] << 8 | rxFrame[BASE + 11]),
+        static_cast<uint16_t>(rxFrame[BASE + 12] << 8 | rxFrame[BASE + 13]),
+        static_cast<uint16_t>(rxFrame[BASE + 14] << 8 | rxFrame[BASE + 15]),
+        static_cast<uint16_t>(rxFrame[BASE + 16] << 8 | rxFrame[BASE + 17]),
+        static_cast<uint16_t>(rxFrame[BASE + 18] << 8 | rxFrame[BASE + 19]),
+        static_cast<uint16_t>(rxFrame[BASE + 20] << 8 | rxFrame[BASE + 21]),
+        static_cast<uint16_t>(rxFrame[BASE + 22] << 8 | rxFrame[BASE + 23]),
+        static_cast<uint16_t>(rxFrame[BASE + 24] << 8 | rxFrame[BASE + 25]),
+        static_cast<uint16_t>(rxFrame[BASE + 26] << 8 | rxFrame[BASE + 27]),
+        static_cast<uint16_t>(rxFrame[BASE + 28] << 8 | rxFrame[BASE + 29]),
+        static_cast<uint16_t>(rxFrame[BASE + 30] << 8 | rxFrame[BASE + 31]),
+    });
+    return ret;
 }
 
 ConfirmationResult SensorHiLinkZw0608::getEnrollImage() {
@@ -572,7 +587,7 @@ AutoEnrollConfirmationResult SensorHiLinkZw0608::autoEnroll(const FingerprintId 
         FingerprintId fingerprintId;
         uint8_t numberOfEntries;
         uint16_t parameter;
-    } data = {swapEndian(fingerprintId), swapEndian(numberOfEntries), swapEndian((uint16_t) parameter)};
+    } data = {swapEndian(fingerprintId), swapEndian(numberOfEntries), swapEndian(static_cast<uint16_t>(parameter))};
     enqueueEvent(CommandEvent{PS_AutoEnroll, (uint8_t *) &data, sizeof(data)});
     awaitReadyFlag();
     if (lastConfirmationCode != Confirmation::Code::OK)
@@ -587,20 +602,13 @@ AutoIdentifyConfirmationResult SensorHiLinkZw0608::autoIdentify(const ScoreLevel
                                                                 const FingerprintId fingerprintId,
                                                                 const AutoIdentifyParameter parameter) {
     clearReadyFlag();
-    const struct [[gnu::packed]] data_t {
-        ScoreLevel scoreLevel;
-        FingerprintId fingerprintId;
-        uint16_t parameter;
-    } data = {swapEndian(scoreLevel), swapEndian(fingerprintId), swapEndian((uint16_t) parameter)};
-    enqueueEvent(CommandEvent{PS_AutoIdentify, (uint8_t *) &data, sizeof(data)});
+    constexpr auto ret = AutoIdentifyResult{};
+    enqueueEvent(PsAutoIdentifyEvent{scoreLevel, fingerprintId, parameter, &ret});
     awaitReadyFlag();
+
     if (lastConfirmationCode != Confirmation::Code::OK)
         return AutoIdentifyConfirmationResult::err(lastConfirmationCode);
-    return AutoIdentifyConfirmationResult::ok({
-        swapEndian(rxData.data[1]),
-        swapEndian(static_cast<uint16_t>(rxData.data[2] | (rxData.data[3] << 8))),
-        swapEndian(static_cast<uint16_t>(rxData.data[4] | (rxData.data[5] << 8)))
-    });
+    return AutoIdentifyConfirmationResult::ok(ret);
 }
 
 ConfirmationResult SensorHiLinkZw0608::sleep() {
@@ -654,7 +662,7 @@ ConfirmationResult SensorHiLinkZw0608::restSetting() {
 }
 
 ConfirmationResult SensorHiLinkZw0608::controlBLN(const ControlBLNFunction function, const ControlBLNColor startColor,
-    const ControlBLNColor endColor, const uint8_t cycles) {
+                                                  const ControlBLNColor endColor, const uint8_t cycles) {
     clearReadyFlag();
     const struct [[gnu::packed]] data_t {
         ControlBLNFunction function;

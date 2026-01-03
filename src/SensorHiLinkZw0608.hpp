@@ -8,7 +8,6 @@
 #include <main.h>
 #include <libsmart_config.hpp>
 #include <chrono>
-
 #include "PinDigitalIn.hpp"
 #include "PinDigitalOut.hpp"
 #include "Stm32Serial.hpp"
@@ -17,7 +16,6 @@
 #include "SensorStates.hpp"
 #include "EventFlags/EventFlags.hpp"
 #include "States/PsReadInfPageState.hpp"
-#include "Types/Confirmation.hpp"
 #include "Types/Types.hpp"
 
 namespace Stm32Fingerprint {
@@ -32,6 +30,7 @@ namespace Stm32Fingerprint {
         States::PsDownImageState,
         States::PsReadSysParaState,
         States::PsReadInfPageState,
+        States::PsAutoIdentifyState,
         States::GetChipSnState,
         States::HandShakeState,
         States::ResetState,
@@ -57,6 +56,7 @@ namespace Stm32Fingerprint {
                   States::PsDownImageState{"PS_DownImage", this, &logger},
                   States::PsReadSysParaState{"PS_ReadSysPara", this, &logger},
                   States::PsReadInfPageState{"PS_ReadINFpage", this, &logger},
+                  States::PsAutoIdentifyState{"PS_AutoIdentify", this, &logger},
                   States::GetChipSnState{"PS_GetChipSN", this, &logger},
                   States::HandShakeState{"PS_HandShake", this, &logger},
                   States::ResetState{"RESET", this, &logger},
@@ -76,6 +76,7 @@ namespace Stm32Fingerprint {
         friend States::PsDownImageState;
         friend States::PsReadSysParaState;
         friend States::PsReadInfPageState;
+        friend States::PsAutoIdentifyState;
         friend States::GetChipSnState;
         friend States::HandShakeState;
         friend States::ResetState;
@@ -254,7 +255,18 @@ namespace Stm32Fingerprint {
         };
 
 
-
+        /**
+         * @brief Captures an image using the HiLink ZW-0608 fingerprint sensor and returns the result of the operation.
+         *
+         * This function triggers the image acquisition process by sending a "Get Image" command to the sensor.
+         * It ensures proper synchronization with the sensor's ready state and evaluates the confirmation
+         * response to return the outcome of the operation.
+         *
+         * @return An object of type ConfirmationResult:
+         *         - If the operation is successful, `ConfirmationResult::ok()` is returned.
+         *         - If the operation fails, `ConfirmationResult::err(lastConfirmationCode)` is returned,
+         *           containing the specific error code from the sensor.
+         */
         ConfirmationResult getImage();
 
         ConfirmationResult genChar(BufferId bufferId);
@@ -267,8 +279,39 @@ namespace Stm32Fingerprint {
 
         ConfirmationResult storeChar(BufferId bufferId, PageId pageId);
 
+        /**
+         * @brief Loads a template from the flash memory of the HiLink ZW-0608 fingerprint sensor into a specified buffer.
+         *
+         * This function sends the "Load Character" command to the sensor, specifying the target buffer and the page ID
+         * of the template in flash memory. It facilitates synchronization with the sensor and evaluates
+         * the confirmation response to determine the outcome of the operation.
+         *
+         * @param bufferId The identifier of the buffer where the template will be loaded.
+         * @param pageId The ID of the page in flash memory containing the desired template.
+         * @return An object of type ConfirmationResult:
+         *         - If the operation is successful, `ConfirmationResult::ok()` is returned.
+         *         - If the operation fails, `ConfirmationResult::err(lastConfirmationCode)` is returned,
+         *           containing the specific error code from the sensor.
+         */
         ConfirmationResult loadChar(BufferId bufferId, PageId pageId);
 
+        /**
+         * @brief Uploads a character template from the fingerprint sensor's buffer to the host.
+         *
+         * Sends a request to the fingerprint sensor to retrieve a character template stored in the specified buffer.
+         * The retrieved template is written into the provided PsUpCharEvent::template_t object. The method utilizes an
+         * asynchronous mechanism for communication with the sensor and processes the confirmation response to determine
+         * the result of the operation.
+         *
+         * @param bufferId The ID of the buffer containing the character template to be uploaded. This typically corresponds
+         *                 to a predefined sensor buffer (e.g., BufferId::BufferA or BufferId::BufferB).
+         * @param tpl Reference to a PsUpCharEvent::template_t object where the retrieved template data will be stored.
+         *
+         * @return An object of type ConfirmationResult:
+         *         - If the operation is successful, `ConfirmationResult::ok()` is returned.
+         *         - If the operation fails, `ConfirmationResult::err(lastConfirmationCode)` is returned, containing the
+         *           specific error code from the sensor.
+         */
         ConfirmationResult upChar(BufferId bufferId, PsUpCharEvent::template_t &tpl);
 
         ConfirmationResult downChar(BufferId bufferId, const PsUpCharEvent::template_t &tpl);
@@ -322,9 +365,11 @@ namespace Stm32Fingerprint {
 
         ConfirmationResult cancel();
 
-        AutoEnrollConfirmationResult autoEnroll(FingerprintId fingerprintId, uint8_t numberOfEntries, AutoEnrollParameter parameter);
+        AutoEnrollConfirmationResult autoEnroll(FingerprintId fingerprintId, uint8_t numberOfEntries,
+                                                AutoEnrollParameter parameter);
 
-        AutoIdentifyConfirmationResult autoIdentify(ScoreLevel scoreLevel, FingerprintId fingerprintId, AutoIdentifyParameter parameter);
+        AutoIdentifyConfirmationResult autoIdentify(ScoreLevel scoreLevel, FingerprintId fingerprintId,
+                                                    AutoIdentifyParameter parameter);
 
         ConfirmationResult sleep();
 
@@ -336,18 +381,21 @@ namespace Stm32Fingerprint {
 
         ConfirmationResult restSetting();
 
-        ConfirmationResult controlBLN(ControlBLNFunction function, ControlBLNColor startColor, ControlBLNColor endColor, uint8_t cycles);
+        ConfirmationResult controlBLN(ControlBLNFunction function, ControlBLNColor startColor, ControlBLNColor endColor,
+                                      uint8_t cycles);
 
         GetImageInfoConfirmationResult getImageInfo();
 
         SearchNowConfirmationResult searchNow(PageId startPage, uint16_t pageCount);
 
-
-
     private:
         Confirmation lastConfirmationCode = Confirmation::Code::UNKNOWN;
         static constexpr uint32_t DEFAULT_WAIT{1000};
-        void clearReadyFlag() { flags.clear(static_cast<ULONG>(flags_t::READY)); }
+
+        void clearReadyFlag() {
+            lastConfirmationCode = Confirmation::Code::UNKNOWN;
+            flags.clear(static_cast<ULONG>(flags_t::READY));
+        }
 
         void awaitReadyFlag(const uint32_t timeout = DEFAULT_WAIT) {
             const auto ret = flags.await(static_cast<ULONG>(flags_t::READY), {timeout});

@@ -16,6 +16,8 @@ Status PsUpImageState::onEnter(const PsUpImageEvent &event) {
     restartTimeout();
 
     image = event.image;
+    imagesize = 0;
+    offset = 0;
 
     getMachine()->sendCommand(SensorHiLinkZw0608::Command::PS_UpImage, nullptr, 0);
 
@@ -61,6 +63,8 @@ OneOf<DoNothing, TransitionTo<ReadyState> > PsUpImageState::handle(const DataRec
 
     if (packageId == 0x08) {
         // Last data packet
+
+        image->size = imagesize;
 
         log(Stm32ItmLogger::LoggerInterface::Severity::INFORMATIONAL)
                 ->printf("offset = %d | imagesize = %d\r\n", offset, imagesize);

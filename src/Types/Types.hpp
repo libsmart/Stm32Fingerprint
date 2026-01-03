@@ -8,6 +8,8 @@
 #include <main.h>
 #include <PrintInterface.hpp>
 
+#include "Confirmation.hpp"
+
 namespace Stm32Fingerprint {
     using BufferId = uint8_t;
     using PageId = uint16_t;
@@ -58,7 +60,7 @@ namespace Stm32Fingerprint {
     };
     using IndexPageId = uint8_t;
     struct ReadIndexTableResult {
-        uint8_t index[32];
+        uint16_t index[16];
     };
     using FingerprintId = uint16_t;
     struct AutoEnrollResult {
@@ -82,9 +84,11 @@ namespace Stm32Fingerprint {
         RETURN_STATUS = 1 << 2
     };
     struct AutoIdentifyResult {
-        uint8_t parameter;
-        FingerprintId fingerprintId;
-        Score score;
+        mutable Confirmation instructionLegalityCheckConfirmation;
+        mutable Confirmation pictureDrawingResultConfirmation;
+        mutable Confirmation searchResultConfirmation;
+        mutable FingerprintId fingerprintId;
+        mutable Score score;
     };
     using ChipSn = uint8_t[32];
     struct GetChipSnResult {
@@ -111,4 +115,18 @@ namespace Stm32Fingerprint {
         PageId pageId;
         MatchScore matchScore;
     };
+
+
+    using ConfirmationResult = Stm32Common::Result<void, Confirmation>;
+    using MatchConfirmationResult = Stm32Common::Result<MatchResult, Confirmation>;
+    using SearchConfirmationResult = Stm32Common::Result<SearchResult, Confirmation>;
+    using GetRandomCodeConfirmationResult = Stm32Common::Result<GetRandomCodeResult, Confirmation>;
+    using ReadInfPageConfirmationResult = Stm32Common::Result<ReadInfPageResult, Confirmation>;
+    using ValidTemplateNumConfirmationResult = Stm32Common::Result<ValidTemplateNumResult, Confirmation>;
+    using ReadIndexTableConfirmationResult = Stm32Common::Result<ReadIndexTableResult, Confirmation>;
+    using AutoEnrollConfirmationResult = Stm32Common::Result<AutoEnrollResult, Confirmation>;
+    using AutoIdentifyConfirmationResult = Stm32Common::Result<AutoIdentifyResult, Confirmation>;
+    using GetChipSnConfirmationResult = Stm32Common::Result<GetChipSnResult, Confirmation>;
+    using GetImageInfoConfirmationResult = Stm32Common::Result<GetImageInfoResult, Confirmation>;
+    using SearchNowConfirmationResult = Stm32Common::Result<SearchNowResult, Confirmation>;
 }

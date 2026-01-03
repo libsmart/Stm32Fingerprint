@@ -18,6 +18,15 @@ Status ReadyState::onEnter(const EventInterface &event) {
     return Continue{};
 }
 
+/*
+Status ReadyState::onLeave(const EventInterface &event) {
+    log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::DEBUGGING)
+        ->printf("%s::%s::onLeave(%s)\r\n", getMachine()->getName(), getName(), event.getName());
+
+    getMachine()->flags.clear(static_cast<ULONG>(SensorHiLinkZw0608::flags_t::READY));
+}
+*/
+
 DoNothing ReadyState::handle(const DetectEvent &event) {
     log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::DEBUGGING)
             ->printf("%s::%s::handle(%s)\r\n", getMachine()->getName(), getName(), event.getName());

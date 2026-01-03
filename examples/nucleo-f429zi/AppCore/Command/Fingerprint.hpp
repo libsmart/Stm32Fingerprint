@@ -91,8 +91,8 @@ namespace AppCore::Command {
             if (argv1 == FNV1a::hash("search")) {
                 if (argc != 5) return runReturn::ERROR;
                 const auto bufferId = static_cast<BufferId>(std::strtoul(argv[2], nullptr, DEC));
-                const auto startPage = static_cast<uint16_t>(std::strtoul(argv[2], nullptr, DEC));
-                const auto countPage = static_cast<uint16_t>(std::strtoul(argv[2], nullptr, DEC));
+                const auto startPage = static_cast<uint16_t>(std::strtoul(argv[3], nullptr, DEC));
+                const auto countPage = static_cast<uint16_t>(std::strtoul(argv[4], nullptr, DEC));
                 const auto r = fpSensor.search(bufferId, startPage, countPage);
                 if (r.isError()) {
                     out()->printf("ERROR: %s (0x%02x)\r\n", r.error().to_string(), r.error());
@@ -115,7 +115,7 @@ namespace AppCore::Command {
             if (argv1 == FNV1a::hash("storechar")) {
                 if (argc != 4) return runReturn::ERROR;
                 const auto bufferId = static_cast<BufferId>(std::strtoul(argv[2], nullptr, DEC));
-                const auto pageId = static_cast<PageId>(std::strtoul(argv[2], nullptr, DEC));
+                const auto pageId = static_cast<PageId>(std::strtoul(argv[3], nullptr, DEC));
                 const auto r = fpSensor.storeChar(bufferId, pageId);
                 if (r.isError()) {
                     out()->printf("ERROR: %s (0x%02x)\r\n", r.error().to_string(), r.error());
@@ -127,7 +127,7 @@ namespace AppCore::Command {
             if (argv1 == FNV1a::hash("loadchar")) {
                 if (argc != 4) return runReturn::ERROR;
                 const auto bufferId = static_cast<BufferId>(std::strtoul(argv[2], nullptr, DEC));
-                const auto pageId = static_cast<PageId>(std::strtoul(argv[2], nullptr, DEC));
+                const auto pageId = static_cast<PageId>(std::strtoul(argv[3], nullptr, DEC));
                 const auto r = fpSensor.loadChar(bufferId, pageId);
                 if (r.isError()) {
                     out()->printf("ERROR: %s (0x%02x)\r\n", r.error().to_string(), r.error());
@@ -139,12 +139,16 @@ namespace AppCore::Command {
             if (argv1 == FNV1a::hash("upchar")) {
                 if (argc != 3) return runReturn::ERROR;
                 const auto bufferId = static_cast<BufferId>(std::strtoul(argv[2], nullptr, DEC));
+                memset(data, 0, sizeof(data));
                 PsUpCharEvent::template_t tpl{sizeof(data), data};
                 const auto r = fpSensor.upChar(bufferId, tpl);
                 if (r.isError()) {
                     out()->printf("ERROR: %s (0x%02x)\r\n", r.error().to_string(), r.error());
                     return runReturn::ERROR;
                 }
+                out()->printf("size : %d\r\n", tpl.size);
+                const auto hash = MurmurHash3::murmur3_32(tpl.data, tpl.size, 0);
+                out()->printf("hash : %08x\r\n", hash);
                 return runReturn::FINISHED;
             }
 
@@ -284,6 +288,27 @@ namespace AppCore::Command {
                 return runReturn::FINISHED;
             }
 
+            if (argv1 == FNV1a::hash("readindextable")) {
+                if (argc != 3) return runReturn::ERROR;
+                const auto indexPageId = static_cast<IndexPageId>(std::strtoul(argv[2], nullptr, DEC));
+                const auto r = fpSensor.readIndexTable(indexPageId);
+                if (r.isError()) {
+                    out()->printf("ERROR: %s (0x%02x)\r\n", r.error().to_string(), r.error());
+                    return runReturn::ERROR;
+                }
+                out()->println(" index table       : ");
+                for (int i=0; i<16; i++) {
+                    // out()->printf("%4d - %4d : ", indexPageId * 265 + i * 16, indexPageId * 265 + (i + 1) * 16 - 1);
+                    out()->printf("%4d - %4d : ", indexPageId * 265 + (i + 1) * 16 - 1, indexPageId * 265 + i * 16);
+                    const auto word = r.value().index[i];
+                    for (int j=15; j>=0; j--) {
+                        out()->printf("%s", ((word >> j) & 0x01) > 0 ? "1" : "0");
+                    }
+                    out()->println();
+                }
+                // out()->println();
+                return runReturn::FINISHED;
+            }
 
             if (argv1 == FNV1a::hash("getenrollimage")) {
                 const auto r = fpSensor.getEnrollImage();
@@ -330,7 +355,9 @@ namespace AppCore::Command {
                     out()->printf("ERROR: %s (0x%02x)\r\n", r.error().to_string(), r.error());
                     return runReturn::ERROR;
                 }
-                out()->printf(" parameter         : 0x%02x\r\n", r.value().parameter);
+                out()->printf(" instruction legal : %s\r\n", r.value().instructionLegalityCheckConfirmation.to_string());
+                out()->printf(" picture drawing   : %s\r\n", r.value().pictureDrawingResultConfirmation.to_string());
+                out()->printf(" search result     : %s\r\n", r.value().searchResultConfirmation.to_string());
                 out()->printf(" fingerprintId     : %d\r\n", r.value().fingerprintId);
                 out()->printf(" score             : %d\r\n", r.value().score);
                 return runReturn::FINISHED;
@@ -387,7 +414,7 @@ namespace AppCore::Command {
                 const auto function = static_cast<ControlBLNFunction>(std::strtoul(argv[2], nullptr, DEC));
                 const auto startColor = static_cast<ControlBLNColor>(std::strtoul(argv[3], nullptr, DEC));
                 const auto endColor = static_cast<ControlBLNColor>(std::strtoul(argv[4], nullptr, DEC));
-                const auto cycles = static_cast<uint8_t>(std::strtoul(argv[4], nullptr, DEC));
+                const auto cycles = static_cast<uint8_t>(std::strtoul(argv[5], nullptr, DEC));
                 const auto r = fpSensor.controlBLN(function, startColor, endColor, cycles);
                 if (r.isError()) {
                     out()->printf("ERROR: %s (0x%02x)\r\n", r.error().to_string(), r.error());
@@ -420,6 +447,16 @@ namespace AppCore::Command {
                 out()->printf(" match score       : 0x%02x\r\n", r.value().matchScore);
                 return runReturn::FINISHED;
             }
+
+/*
+ * fp autoenroll 7 1 63
+ * fp autoidentify 18 65535 7
+ * fp readindextable 0
+ * fp validtemplatenum
+ *
+ * fp loadchar 2 5
+ * fp upchar 2
+ */
 
 
 #endif

@@ -16,6 +16,8 @@ Status PsUpCharState::onEnter(const PsUpCharEvent &event) {
     restartTimeout();
 
     tpl = event.tpl;
+    bufferOffset = 0;
+    downloadSize = 0;
     bufferId = event.bufferId;
     const struct [[gnu::packed]] data_t {
         BufferId bufferId;
@@ -66,6 +68,8 @@ OneOf<DoNothing, TransitionTo<ReadyState> > PsUpCharState::handle(const DataRece
 
     if (packageId == 0x08) {
         // Last data packet
+
+        tpl->size = downloadSize;
 
         log(Stm32ItmLogger::LoggerInterface::Severity::INFORMATIONAL)
                 ->printf("offset = %d | imagesize = %d\r\n", bufferOffset, downloadSize);

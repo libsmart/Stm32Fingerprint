@@ -27,6 +27,7 @@ namespace Stm32Fingerprint {
                       On<PsDownImageEvent, TransitionTo<PsDownImageState> >,
                       On<PsReadSysParaEvent, TransitionTo<PsReadSysParaState> >,
                       On<PsReadInfPageEvent, TransitionTo<PsReadInfPageState> >,
+                      On<PsAutoIdentifyEvent, TransitionTo<PsAutoIdentifyState> >,
                       On<GetChipSnEvent, TransitionTo<GetChipSnState> >,
                       On<HandShakeEvent, TransitionTo<HandShakeState> >,
                       On<ResetEvent, TransitionTo<ResetState> >
@@ -37,6 +38,8 @@ namespace Stm32Fingerprint {
             using Will::handle;
 
             Status onEnter(const EventInterface &event);
+
+            // Status onLeave(const EventInterface &event);
 
             DoNothing handle(const DetectEvent &event);
 
