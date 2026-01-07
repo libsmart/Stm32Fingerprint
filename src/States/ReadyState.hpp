@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 Roland Rusch, easy-smart solution GmbH <roland.rusch@easy-smart.ch>
+ * SPDX-FileCopyrightText: 2026 Roland Rusch, easy-smart solution GmbH <roland.rusch@easy-smart.ch>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -10,9 +10,6 @@
 #include "SensorEvents.hpp"
 #include "SensorStates.hpp"
 
-using namespace AppCore::FSM;
-using namespace Stm32Fingerprint::Events;
-
 namespace Stm32Fingerprint {
     class SensorHiLinkZw0608;
 
@@ -22,12 +19,14 @@ namespace Stm32Fingerprint {
                   Will<
                       ByDefault<DoNothing>,
                       On<CommandEvent, TransitionTo<CommandState> >,
+                      On<PsCancelEvent, TransitionTo<PsCancelState> >,
                       On<PsUpCharEvent, TransitionTo<PsUpCharState> >,
                       On<PsUpImageEvent, TransitionTo<PsUpImageState> >,
                       On<PsDownImageEvent, TransitionTo<PsDownImageState> >,
                       On<PsReadSysParaEvent, TransitionTo<PsReadSysParaState> >,
                       On<PsReadInfPageEvent, TransitionTo<PsReadInfPageState> >,
                       On<PsAutoIdentifyEvent, TransitionTo<PsAutoIdentifyState> >,
+                      On<PsAutoEnrollEvent, TransitionTo<PsAutoEnrollState> >,
                       On<GetChipSnEvent, TransitionTo<GetChipSnState> >,
                       On<HandShakeEvent, TransitionTo<HandShakeState> >,
                       On<ResetEvent, TransitionTo<ResetState> >
@@ -35,15 +34,13 @@ namespace Stm32Fingerprint {
             ReadyState(const char *name, SensorHiLinkZw0608 *machine, Stm32ItmLogger::LoggerInterface *logger)
                 : StateInterface(name, machine, logger) { ; }
 
-            using Will::handle;
-
             Status onEnter(const EventInterface &event);
-
-            // Status onLeave(const EventInterface &event);
 
             DoNothing handle(const DetectEvent &event);
 
             DoNothing handle(const LoopEvent &event);
+
+            using Will::handle;
 
         private:
             uint32_t stateEnteredMillis = 0;

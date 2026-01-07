@@ -53,6 +53,10 @@ namespace Stm32Fingerprint {
             }
         };
 
+        struct PsCancelEvent : EventInterface, QueueableEvent {
+            PsCancelEvent() : EventInterface("PsCancelEvent") { ; }
+        };
+
         struct PsUpCharEvent final : EventInterface, QueueableEvent {
             using template_t = struct template_t {
                 size_t size;
@@ -167,6 +171,29 @@ namespace Stm32Fingerprint {
             }
         };
 
+        struct PsAutoEnrollEvent final : EventInterface, QueueableEvent {
+            PsAutoEnrollEvent() : PsAutoEnrollEvent(0, 0, AutoEnrollParameter{0}, nullptr) { ; }
+
+            PsAutoEnrollEvent(const FingerprintId fingerprintId, const uint8_t numberOfEntries,
+                                const AutoEnrollParameter parameter, const AutoEnrollResult *result)
+                : EventInterface("PsAutoEnrollEvent"),
+                  fingerprintId(fingerprintId), numberOfEntries(numberOfEntries), parameter(parameter), result(result) { ; }
+
+            FingerprintId fingerprintId;
+            uint8_t numberOfEntries;
+            AutoEnrollParameter parameter;
+            const AutoEnrollResult *result;
+
+            void setData(const uint8_t *data) override {
+                std::remove_reference_t<decltype(*this)> me;
+                memcpy(&me, data, sizeof(me));
+                fingerprintId = me.fingerprintId;
+                numberOfEntries = me.numberOfEntries;
+                parameter = me.parameter;
+                result = me.result;
+            }
+        };
+
         struct GetChipSnEvent final : EventInterface, QueueableEvent {
             GetChipSnEvent() : EventInterface("GetChipSnEvent") { ; }
         };
@@ -208,12 +235,14 @@ namespace Stm32Fingerprint {
         Events::LoopEvent,
         Events::InitializeEvent,
         Events::CommandEvent,
+        Events::PsCancelEvent,
         Events::PsUpCharEvent,
         Events::PsUpImageEvent,
         Events::PsDownImageEvent,
         Events::PsReadSysParaEvent,
         Events::PsReadInfPageEvent,
         Events::PsAutoIdentifyEvent,
+        Events::PsAutoEnrollEvent,
         Events::GetChipSnEvent,
         Events::HandShakeEvent,
         Events::WakeupEvent,

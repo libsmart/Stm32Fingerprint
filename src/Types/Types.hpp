@@ -64,6 +64,7 @@ namespace Stm32Fingerprint {
     };
     using FingerprintId = uint16_t;
     struct AutoEnrollResult {
+        mutable Confirmation instructionLegalityCheckConfirmation;
         uint8_t parameter1;
         uint8_t parameter2;
     };

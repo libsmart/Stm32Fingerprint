@@ -1,10 +1,10 @@
 /*
- * SPDX-FileCopyrightText: 2025 Roland Rusch, easy-smart solution GmbH <roland.rusch@easy-smart.ch>
+ * SPDX-FileCopyrightText: 2024 Roland Rusch, easy-smart solution GmbH <roland.rusch@easy-smart.ch>
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-#ifndef NUCLEO_F429ZI_APPCORE_FSM_STATEINTERFACE_HPP
-#define NUCLEO_F429ZI_APPCORE_FSM_STATEINTERFACE_HPP
+#ifndef AT_FIRMWARE_APPCORE_FSM_STATEINTERFACE_HPP
+#define AT_FIRMWARE_APPCORE_FSM_STATEINTERFACE_HPP
 
 #include "Loggable.hpp"
 #include "Nameable.hpp"
@@ -28,6 +28,7 @@ namespace AppCore::FSM {
         }
 
         [[nodiscard]] auto *getMachine() const { return machine; }
+        [[nodiscard]] auto &fsm() const { return *machine; }
 
         template<typename... Args>
         Status onEnter(Args... args) {

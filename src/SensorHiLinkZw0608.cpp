@@ -25,12 +25,23 @@ void SensorHiLinkZw0608::initialize() {
 }
 
 void SensorHiLinkZw0608::loop() {
-    pinDetect.loop();
-    pinEnable.loop();
-    serial.loop();
     ThreadXStateMachine::loop();
-    parseReply();
-    handle(LoopEvent{});
+    try {
+        handle(LoopEvent{});
+    } catch (const std::exception &e) {
+        log()->setSeverity(Severity::ERROR)->printf("ERROR: %s\r\n", e.what());
+    }
+}
+
+void SensorHiLinkZw0608::loopIo() {
+    try {
+        pinDetect.loop();
+        pinEnable.loop();
+        serial.loop();
+        parseReply();
+    } catch (const std::exception &e) {
+        log()->setSeverity(Severity::ERROR)->printf("ERROR: %s\r\n", e.what());
+    }
 }
 
 void SensorHiLinkZw0608::end() {
@@ -74,17 +85,15 @@ void SensorHiLinkZw0608::parseReply() {
 
     if (available == 0) return;
 
-
-    // auto rxBuffer = serial.getRxBuffer();
     const auto rxBuffer = fpSessionManager.getFirstSession()->getRxBuffer();
     const volatile auto buf = rxBuffer->getReadPointer();
 
     /*
-    log(Severity::NOTICE)->print("FP: ");
+    log(Severity::INFORMATIONAL)->print("FP: ");
     for (size_t i = 0; i < available; i++) {
-        log(Severity::NOTICE)->printf("%02x ", buf[i]);
+        log(Severity::INFORMATIONAL)->printf("%02x ", buf[i]);
     }
-    log(Severity::NOTICE)->println();
+    log(Severity::INFORMATIONAL)->println();
     */
 
     size_t frame_length = 0;
@@ -99,7 +108,7 @@ void SensorHiLinkZw0608::parseReply() {
 
                 if (c == 0x55) {
                     // fp sensor sends 0x55
-                    handle(InitOkReceivedEvent{});
+                    // handle(InitOkReceivedEvent{});
                     frameBytesParsed = 0;
                     memset(rxFrame, 0, sizeof(rxFrame));
                     break;
@@ -194,28 +203,28 @@ void SensorHiLinkZw0608::parseReply() {
             case parserState_t::DONE: {
                 parserState = parserState_t::DONE;
 
-                log(Severity::NOTICE)->print("RX: ");
+                log(Severity::INFORMATIONAL)->print("RX: ");
                 for (size_t i = 0; i < rxData.packetLength + DATA_OFFSET; i++) {
-                    log(Severity::NOTICE)->printf("%02x ", rxFrame[i]);
+                    log(Severity::INFORMATIONAL)->printf("%02x ", rxFrame[i]);
                 }
-                log(Severity::NOTICE)->println();
+                log(Severity::INFORMATIONAL)->println();
 
-                log(Severity::NOTICE)
+                log(Severity::INFORMATIONAL)
                         ->printf("Header         0x%04x\r\n", rxData.header);
 
-                log(Severity::NOTICE)
+                log(Severity::INFORMATIONAL)
                         ->printf("Device address 0x%08x\r\n", rxData.address);
 
-                log(Severity::NOTICE)
+                log(Severity::INFORMATIONAL)
                         ->printf("Package ID     0x%02x\r\n", rxData.packageId);
 
-                log(Severity::NOTICE)
+                log(Severity::INFORMATIONAL)
                         ->printf("Package length 0x%04x (%d)\r\n", rxData.packetLength, rxData.packetLength);
 
-                log(Severity::NOTICE)
+                log(Severity::INFORMATIONAL)
                         ->printf("confirmation   0x%02x\r\n", rxData.data[0]);
 
-                log(Severity::NOTICE)
+                log(Severity::INFORMATIONAL)
                         ->printf("Checksum       0x%04x (%d)\r\n", rxData.checksum, rxData.checksum);
 
 
@@ -224,7 +233,7 @@ void SensorHiLinkZw0608::parseReply() {
 
                 cnt = 0;
                 frameBytesParsed = 0;
-                memset(rxFrame, 0, sizeof(rxFrame));
+                memset(rxFrame, 0x00, sizeof(rxFrame));
                 parserState = parserState_t::NONE;
                 break;
             }
@@ -273,11 +282,11 @@ void SensorHiLinkZw0608::sendPacket(const uint8_t packetId, const uint8_t *data,
 
     *checksum = __builtin_bswap16(calc_checksum(reinterpret_cast<uint8_t *>(&txFrame), 6, frame_length - 2));
 
-    log(Severity::NOTICE)->print("TX: ");
+    log(Severity::INFORMATIONAL)->print("TX: ");
     for (size_t i = 0; i < frame_length; i++) {
-        log(Severity::NOTICE)->printf("%02x ", txFrame[i]);
+        log(Severity::INFORMATIONAL)->printf("%02x ", txFrame[i]);
     }
-    log(Severity::NOTICE)->println();
+    log(Severity::INFORMATIONAL)->println();
 
     serial.getSession()->write(reinterpret_cast<const uint8_t *>(&txFrame), frame_length);
 }
@@ -584,19 +593,12 @@ AutoEnrollConfirmationResult SensorHiLinkZw0608::autoEnroll(const FingerprintId 
                                                             const uint8_t numberOfEntries,
                                                             const AutoEnrollParameter parameter) {
     clearReadyFlag();
-    const struct [[gnu::packed]] data_t {
-        FingerprintId fingerprintId;
-        uint8_t numberOfEntries;
-        uint16_t parameter;
-    } data = {swapEndian(fingerprintId), swapEndian(numberOfEntries), swapEndian(static_cast<uint16_t>(parameter))};
-    enqueueEvent(CommandEvent{PS_AutoEnroll, (uint8_t *) &data, sizeof(data)});
+    constexpr auto ret = AutoEnrollResult{};
+    enqueueEvent(PsAutoEnrollEvent{fingerprintId, numberOfEntries, parameter, &ret});
     awaitReadyFlag();
     if (lastConfirmationCode != Confirmation::Code::OK)
         return AutoEnrollConfirmationResult::err(lastConfirmationCode);
-    return AutoEnrollConfirmationResult::ok({
-        swapEndian(rxData.data[1]),
-        swapEndian(rxData.data[2])
-    });
+    return AutoEnrollConfirmationResult::ok(ret);
 }
 
 AutoIdentifyConfirmationResult SensorHiLinkZw0608::autoIdentify(const ScoreLevel scoreLevel,
@@ -606,7 +608,6 @@ AutoIdentifyConfirmationResult SensorHiLinkZw0608::autoIdentify(const ScoreLevel
     constexpr auto ret = AutoIdentifyResult{};
     enqueueEvent(PsAutoIdentifyEvent{scoreLevel, fingerprintId, parameter, &ret});
     awaitReadyFlag();
-
     if (lastConfirmationCode != Confirmation::Code::OK)
         return AutoIdentifyConfirmationResult::err(lastConfirmationCode);
     return AutoIdentifyConfirmationResult::ok(ret);

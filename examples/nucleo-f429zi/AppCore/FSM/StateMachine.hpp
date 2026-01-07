@@ -1,10 +1,10 @@
 /*
- * SPDX-FileCopyrightText: 2025 Roland Rusch, easy-smart solution GmbH <roland.rusch@easy-smart.ch>
+ * SPDX-FileCopyrightText: 2024 Roland Rusch, easy-smart solution GmbH <roland.rusch@easy-smart.ch>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#ifndef NUCLEO_F429ZI_APPCORE_FSM_STATEMACHINE_HPP
-#define NUCLEO_F429ZI_APPCORE_FSM_STATEMACHINE_HPP
+#ifndef AT_FIRMWARE_APPCORE_FSM_STATEMACHINE_HPP
+#define AT_FIRMWARE_APPCORE_FSM_STATEMACHINE_HPP
 
 #include <any>
 #include <variant>
@@ -267,11 +267,10 @@ namespace AppCore::FSM {
             return state;
         }
 
-        auto currentState() {
-            // return current_state_;
-            return std::visit([](auto fromState) {
-                return *fromState;
-            }, current_state_);
+    public:
+        template<typename Visitor>
+        auto visitCurrentState(Visitor &&visitor) {
+            return std::visit(std::forward<Visitor>(visitor), current_state_);
         }
 
     private:
@@ -541,7 +540,7 @@ namespace AppCore::FSM {
 
         [[nodiscard]] auto data() const noexcept -> const std::any & {
             return std::visit(
-                [](auto &action) noexcept -> const std::any &{ return action.data(); },
+                [](auto &action) noexcept -> const std::any & { return action.data(); },
                 option);
         }
 

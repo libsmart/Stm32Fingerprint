@@ -8,10 +8,10 @@
 
 using namespace Stm32Fingerprint::Events;
 using namespace Stm32Fingerprint::States;
+using Severity = Stm32ItmLogger::LoggerInterface::Severity;
 
 Status PsAutoIdentifyState::onEnter(const PsAutoIdentifyEvent &event) {
-    log(Stm32ItmLogger::LoggerInterface::Severity::DEBUGGING)
-            ->printf("%s::%s::onEnter(%s)\r\n", getMachine()->getName(), getName(), event.getName());
+    log(Severity::DEBUGGING)->printf("%s::%s::onEnter(%s)\r\n", getMachine()->getName(), getName(), event.getName());
 
     restartTimeout();
 
@@ -33,8 +33,7 @@ Status PsAutoIdentifyState::onEnter(const PsAutoIdentifyEvent &event) {
 }
 
 OneOf<DoNothing, TransitionTo<ReadyState> > PsAutoIdentifyState::handle(const DataReceivedEvent &event) {
-    log(Stm32ItmLogger::LoggerInterface::Severity::DEBUGGING)
-            ->printf("%s::%s::handle(%s)\r\n", getMachine()->getName(), getName(), event.getName());
+    log(Severity::DEBUGGING)->printf("%s::%s::handle(%s)\r\n", getMachine()->getName(), getName(), event.getName());
 
     restartTimeout();
 
@@ -44,10 +43,7 @@ OneOf<DoNothing, TransitionTo<ReadyState> > PsAutoIdentifyState::handle(const Da
     if (packageId == 0x07 && packetLength == 8) {
         // Command response packet
         const auto confirmation = getMachine()->rxFrame[9];
-        if ((getMachine()->lastConfirmationCode == Confirmation::Code::OK) || (
-                getMachine()->lastConfirmationCode == Confirmation::Code::UNKNOWN)) {
-            getMachine()->lastConfirmationCode = Confirmation::Code{confirmation};
-        }
+        getMachine()->lastConfirmationCode = Confirmation::Code{confirmation};
         const auto parameter = getMachine()->rxFrame[10];
         const auto idNumber = static_cast<uint16_t>(getMachine()->rxFrame[11] << 8 | getMachine()->rxFrame[12]);
         const auto score = static_cast<uint16_t>(getMachine()->rxFrame[13] << 8 | getMachine()->rxFrame[14]);
@@ -57,11 +53,9 @@ OneOf<DoNothing, TransitionTo<ReadyState> > PsAutoIdentifyState::handle(const Da
                 // Instruction legality check
                 result->instructionLegalityCheckConfirmation = Confirmation::Code{confirmation};
                 if (confirmation == 0x00) {
-                    log(Stm32ItmLogger::LoggerInterface::Severity::NOTICE)
-                            ->printf("PS_UpChar(): Instruction legality check OK\r\n");
+                    log(Severity::NOTICE)->printf("PS_AutoIdentify(): Instruction legality check OK\r\n");
                 } else {
-                    log(Stm32ItmLogger::LoggerInterface::Severity::ERROR)
-                            ->printf("PS_UpChar(): Instruction legality check ERROR\r\n");
+                    log(Severity::ERROR)->printf("PS_AutoIdentify(): Instruction legality check ERROR\r\n");
                 }
                 break;
             }
@@ -70,11 +64,9 @@ OneOf<DoNothing, TransitionTo<ReadyState> > PsAutoIdentifyState::handle(const Da
                 // Picture drawing result
                 result->pictureDrawingResultConfirmation = Confirmation::Code{confirmation};
                 if (confirmation == 0x00) {
-                    log(Stm32ItmLogger::LoggerInterface::Severity::NOTICE)
-                            ->printf("PS_UpChar(): Picture drawing result OK\r\n");
+                    log(Severity::NOTICE)->printf("PS_AutoIdentify(): Picture drawing result OK\r\n");
                 } else {
-                    log(Stm32ItmLogger::LoggerInterface::Severity::ERROR)
-                            ->printf("PS_UpChar(): Picture drawing result ERROR\r\n");
+                    log(Severity::ERROR)->printf("PS_AutoIdentify(): Picture drawing result ERROR\r\n");
                 }
                 break;
             }
@@ -85,11 +77,10 @@ OneOf<DoNothing, TransitionTo<ReadyState> > PsAutoIdentifyState::handle(const Da
                 result->fingerprintId = idNumber;
                 result->score = Score{score};
                 if (confirmation == 0x00) {
-                    log(Stm32ItmLogger::LoggerInterface::Severity::NOTICE)
-                            ->printf("PS_UpChar(): search results OK\r\n");
+                    log(Severity::NOTICE)->printf("PS_AutoIdentify(): search results OK\r\n");
+                    return TransitionTo<ReadyState>{};
                 } else {
-                    log(Stm32ItmLogger::LoggerInterface::Severity::ERROR)
-                            ->printf("PS_UpChar(): search results ERROR\r\n");
+                    log(Severity::ERROR)->printf("PS_AutoIdentify(): search results ERROR\r\n");
                 }
                 break;
             }
@@ -103,6 +94,8 @@ OneOf<DoNothing, TransitionTo<ReadyState> > PsAutoIdentifyState::handle(const Da
 
 DoNothing PsAutoIdentifyState::handle(const LoopEvent &event) {
     if (millis() - stateEnteredMillis > TIMEOUT_CMD) {
+        log(Severity::ERROR)->printf("PS_AutoIdentify(): TIMEOUT\r\n");
+        getMachine()->lastConfirmationCode = Confirmation::Code::ERROR_TIMEOUT;
         getMachine()->enqueueEvent(TimeoutEvent{});
     }
     return {};

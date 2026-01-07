@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 Roland Rusch, easy-smart solution GmbH <roland.rusch@easy-smart.ch>
+ * SPDX-FileCopyrightText: 2026 Roland Rusch, easy-smart solution GmbH <roland.rusch@easy-smart.ch>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -14,29 +14,30 @@ namespace Stm32Fingerprint {
     class SensorHiLinkZw0608;
 
     namespace States {
-        struct CommandState
+        struct PsAutoEnrollState final
                 : StateInterface<SensorHiLinkZw0608>,
                   Will<
                       ByDefault<DoNothing>,
-                      On<TimeoutEvent, TransitionTo<ReadyState> >,
-                      On<ResetEvent, TransitionTo<ResetState> >
+                      On<TimeoutEvent, TransitionTo<PsCancelState> >,
+                      On<ResetEvent, TransitionTo<ResetState> >,
+                      On<ErrorEvent, TransitionTo<ResetState> >
                   > {
-            CommandState(const char *name, SensorHiLinkZw0608 *machine, Stm32ItmLogger::LoggerInterface *logger)
+            PsAutoEnrollState(const char *name, SensorHiLinkZw0608 *machine, Stm32ItmLogger::LoggerInterface *logger)
                 : StateInterface(name, machine, logger) { ; }
 
-            using Will::handle;
-
-            Status onEnter(const CommandEvent &event);
+            Status onEnter(const PsAutoEnrollEvent &event);
 
             OneOf<DoNothing, TransitionTo<ReadyState>> handle(const DataReceivedEvent &event);
 
             DoNothing handle(const LoopEvent &event);
 
+            using Will::handle;
+
         private:
             uint32_t stateEnteredMillis = 0;
-            static constexpr uint32_t TIMEOUT_CMD = 1000;
-
-            uint8_t command = 0;
+            static constexpr uint32_t TIMEOUT_CMD = LIBSMART_SECONDS_TO_MS(5);
+            const AutoEnrollResult *result{};
+            void restartTimeout();
         };
     }
 }

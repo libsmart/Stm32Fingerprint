@@ -7,7 +7,6 @@
 
 #include <main.h>
 #include <libsmart_config.hpp>
-#include <chrono>
 #include "PinDigitalIn.hpp"
 #include "PinDigitalOut.hpp"
 #include "Stm32Serial.hpp"
@@ -15,6 +14,7 @@
 #include "SensorEvents.hpp"
 #include "SensorStates.hpp"
 #include "EventFlags/EventFlags.hpp"
+#include "States/PsCancelState.hpp"
 #include "States/PsReadInfPageState.hpp"
 #include "Types/Types.hpp"
 
@@ -25,12 +25,14 @@ namespace Stm32Fingerprint {
         States::InitializeState,
         States::ReadyState,
         States::CommandState,
+        States::PsCancelState,
         States::PsUpCharState,
         States::PsUpImageState,
         States::PsDownImageState,
         States::PsReadSysParaState,
         States::PsReadInfPageState,
         States::PsAutoIdentifyState,
+        States::PsAutoEnrollState,
         States::GetChipSnState,
         States::HandShakeState,
         States::ResetState,
@@ -51,12 +53,14 @@ namespace Stm32Fingerprint {
                   States::InitializeState{"INIT", this, &logger},
                   States::ReadyState{"READY", this, &logger},
                   States::CommandState{"CMD", this, &logger},
+                  States::PsCancelState{"PS_Cancel", this, &logger},
                   States::PsUpCharState{"PS_UpChar", this, &logger},
                   States::PsUpImageState{"PS_UpImage", this, &logger},
                   States::PsDownImageState{"PS_DownImage", this, &logger},
                   States::PsReadSysParaState{"PS_ReadSysPara", this, &logger},
                   States::PsReadInfPageState{"PS_ReadINFpage", this, &logger},
                   States::PsAutoIdentifyState{"PS_AutoIdentify", this, &logger},
+                  States::PsAutoEnrollState{"PS_AutoEnroll", this, &logger},
                   States::GetChipSnState{"PS_GetChipSN", this, &logger},
                   States::HandShakeState{"PS_HandShake", this, &logger},
                   States::ResetState{"RESET", this, &logger},
@@ -71,12 +75,14 @@ namespace Stm32Fingerprint {
         friend States::InitializeState;
         friend States::ReadyState;
         friend States::CommandState;
+        friend States::PsCancelState;
         friend States::PsUpCharState;
         friend States::PsUpImageState;
         friend States::PsDownImageState;
         friend States::PsReadSysParaState;
         friend States::PsReadInfPageState;
         friend States::PsAutoIdentifyState;
+        friend States::PsAutoEnrollState;
         friend States::GetChipSnState;
         friend States::HandShakeState;
         friend States::ResetState;
@@ -121,6 +127,8 @@ namespace Stm32Fingerprint {
         void initialize();
 
         void loop() override;
+
+        void loopIo();
 
         void end() override;
 

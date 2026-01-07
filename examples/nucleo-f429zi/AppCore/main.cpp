@@ -75,6 +75,12 @@ void loopOnce() {
     });
     fpSensorThread.createAndResumeThread(fpSensorThreadStack, sizeof(fpSensorThreadStack), "loop()/fpSensorThread");
     fpSensor.initialize();
+
+    static Stm32ThreadX::RunThreadEvery fpIoThread(1, []() {
+        fpSensor.loopIo();
+    });
+    fpIoThread.createAndResumeThread(fpIoThreadStack, sizeof(fpIoThreadStack), "loop()/fpIoThread");
+
 #endif
 
 }

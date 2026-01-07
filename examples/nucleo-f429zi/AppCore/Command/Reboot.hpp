@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 Roland Rusch, easy-smart solution GmbH <roland.rusch@easy-smart.ch>
+ * SPDX-FileCopyrightText: 2026 Roland Rusch, easy-smart solution GmbH <roland.rusch@easy-smart.ch>
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -7,8 +7,6 @@
 
 #include "Command/AbstractCommand.hpp"
 #include "ezShell/Shell.hpp"
-
-using namespace Stm32ItmLogger;
 
 namespace AppCore::Command {
     class Reboot : public Stm32Shell::Command::AbstractCommand {

@@ -1,14 +1,18 @@
 /*
- * SPDX-FileCopyrightText: 2025 Roland Rusch, easy-smart solution GmbH <roland.rusch@easy-smart.ch>
+ * SPDX-FileCopyrightText: 2024 Roland Rusch, easy-smart solution GmbH <roland.rusch@easy-smart.ch>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
 #pragma once
 
+#include <optional>
 #include <stdexcept>
+
+#include "EventQueueEmptyException.hpp"
 #include "StateMachine.hpp"
 #include "Process/ProcessInterface.hpp"
 #include "Queue/Queue.hpp"
+#include "Result/Result.hpp"
 
 namespace AppCore::FSM {
     template<typename FsmEvents_t, typename... FsmStates_t>
@@ -17,6 +21,9 @@ namespace AppCore::FSM {
                                 public Stm32Common::Nameable,
                                 public Stm32ItmLogger::Loggable {
     public:
+        static constexpr char COMPONENT_NAME[] = "FSM";
+        static constexpr char CLASS_NAME[] = "ThreadXStateMachine";
+
         explicit ThreadXStateMachine(FsmStates_t... states) : StateMachine<FsmStates_t...>(std::move(states)...) { ; }
 
         ThreadXStateMachine(FsmStates_t... states, const char *name, Stm32ItmLogger::LoggerInterface *logger)
@@ -29,6 +36,8 @@ namespace AppCore::FSM {
          * @note Must be called AFTER ThreadX is initialized.
          */
         void setup() override {
+            queue.setName(getName());
+            queue.setLogger(getLogger());
             queue.create(LIBSMART_CEIL_DIV(sizeof(EncodedEvent), sizeof(ULONG)));
         }
 
@@ -45,11 +54,12 @@ namespace AppCore::FSM {
          */
         void loop() override {
             try {
-                if (queue.isEmpty()) return;
                 auto event = dequeueEvent();
                 std::visit([this](auto &&actualEvent) {
                     handle(actualEvent);
                 }, event);
+            } catch (const EventQueueEmptyException &e) {
+                // Do nothing, empty queue is not considered an error
             } catch (const std::exception &e) {
                 log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::ERROR)
                         ->printf("ERROR: %s\r\n", e.what());
@@ -89,14 +99,16 @@ namespace AppCore::FSM {
          */
         template<typename Event>
         auto handle(const Event &event) -> Status {
+            // log(Stm32ItmLogger::LoggerInterface::Severity::INFORMATIONAL)
+            // ->printf("%s::handle(%s)\r\n", getName(), event.getName());
             return StateMachine<FsmStates_t...>::handle(event);
         }
 
         bool enqueueEvent(const FsmEvents_t &event) {
-            std::visit([this](auto &&arg) {
-                log(Stm32ItmLogger::LoggerInterface::Severity::DEBUGGING)
-                        ->printf("%s::enqueueEvent(%s)\r\n", getName(), arg.getName());
-            }, event);
+            // std::visit([this](auto &&arg) {
+            // log(Stm32ItmLogger::LoggerInterface::Severity::DEBUGGING)
+            // ->printf("%s::enqueueEvent(%s)\r\n", getName(), arg.getName());
+            // }, event);
 
             EncodedEvent encoded_event{};
             encoded_event.eventId = event.index();
@@ -105,7 +117,13 @@ namespace AppCore::FSM {
                 std::memcpy(encoded_event.eventData, &arg, std::min(sizeof(arg), sizeof(encoded_event.eventData)));
             }, event);
 
-            return queue.send(&encoded_event, TX_NO_WAIT) == TX_SUCCESS;
+            try {
+                return queue.send(&encoded_event, TX_NO_WAIT) == TX_SUCCESS;
+            } catch (const std::exception &e) {
+                log()->setSeverity(Stm32ItmLogger::LoggerInterface::Severity::ERROR)
+                        ->printf("ERROR: %s\r\n", e.what());
+            }
+            return false;
         }
 
         // Hilfsstruktur für die Deserialisierung
@@ -142,26 +160,23 @@ namespace AppCore::FSM {
         }
 
         FsmEvents_t dequeueEvent() {
-            // log(Stm32ItmLogger::LoggerInterface::Severity::DEBUGGING)
-            // ->printf("ThreadXStateMachine::dequeueEvent()\r\n");
-
             EncodedEvent encoded_event{};
-            auto ret = queue.receive(&encoded_event, TX_NO_WAIT);
+            auto ret = queue.receive(&encoded_event, 110);
             if (ret == TX_SUCCESS) {
                 auto event = deserializeEvent(encoded_event);
                 return event;
             }
+            if (ret == TX_QUEUE_EMPTY) {
+                throw EventQueueEmptyException();
+            }
 
-            throw std::runtime_error("Queue empty");
+            throw std::runtime_error("Queue error");
         }
 
     protected:
-        Stm32ThreadX::Queue queue{
-            (std::string(getName()) + std::string("::ThreadXStateMachine::Queue")).c_str(), queueMem, sizeof(queueMem),
-            getLogger()
-        };
+        Stm32ThreadX::Queue queue{"", queueMem, sizeof(queueMem)};
 
     private:
-        uint8_t queueMem[512]{};
+        uint8_t queueMem[10 * LIBSMART_CEIL_DIV(sizeof(EncodedEvent), sizeof(ULONG)) * sizeof(ULONG)]{};
     };
 }

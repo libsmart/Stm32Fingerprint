@@ -30,16 +30,8 @@ OneOf<DoNothing, TransitionTo<ReadyState> > CommandState::handle(const DataRecei
     const auto confirmation = getMachine()->rxData.data[0];
     getMachine()->lastConfirmationCode = Confirmation::Code{confirmation};
 
-    const auto size = getMachine()->rxData.packetLength - 3;
-
     if (confirmation == 0x00) {
-        Stm32Common::String::FixedString<50> str;
-        for (int i = 0; i < size; i++) {
-            str.printf("%02x", getMachine()->rxData.data[i + 1]);
-        }
-
         log(Severity::NOTICE)->printf("CommandState(%02x): OK\r\n", command);
-
         return TransitionTo<ReadyState>{};
     }
 

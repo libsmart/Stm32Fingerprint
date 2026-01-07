@@ -53,6 +53,7 @@ inline Stm32Serial::Stm32Serial Serial2(&uart2Driver, &fpSessionManager);
 
 inline Stm32Fingerprint::SensorHiLinkZw0608 fpSensor("FP", Serial2, fp_DETECT, fp_nSTDBY, Logger);
 inline uint8_t fpSensorThreadStack[4 * 1024];
+inline uint8_t fpIoThreadStack[2 * 1024];
 #endif
 
 #endif

@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2025 Roland Rusch, easy-smart solution GmbH <roland.rusch@easy-smart.ch>
+ * SPDX-FileCopyrightText: 2026 Roland Rusch, easy-smart solution GmbH <roland.rusch@easy-smart.ch>
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -9,9 +9,6 @@
 #include "FSM/StateInterface.hpp"
 #include "SensorEvents.hpp"
 #include "SensorStates.hpp"
-
-using namespace AppCore::FSM;
-using namespace Stm32Fingerprint::Events;
 
 namespace Stm32Fingerprint {
     class SensorHiLinkZw0608;

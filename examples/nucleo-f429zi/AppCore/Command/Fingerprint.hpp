@@ -25,17 +25,27 @@ namespace AppCore::Command {
         runReturn run() override {
             using namespace Stm32Fingerprint;
             using namespace Stm32Common::Hash;
+            using Severity = Stm32ItmLogger::LoggerInterface::Severity;
 
             const auto argv1 = FNV1a::hash(argv[1]);
 
 #if ENABLE_FP==1
+            log(Severity::NOTICE)->print("====> FINGERPRINT '");
+            for (int i = 0; i < argc; i++) {
+                log(Severity::NOTICE)->print(argv[i]);
+                if (i < argc - 1) log(Severity::NOTICE)->print(" ");
+            }
+            log(Severity::NOTICE)->println("'");
 
             switch (argv1) {
                 case FNV1a::hash("info"): {
                     out()->println("Fingerprint info");
                     out()->printf("fp_nSTDBY : %s\r\n", fp_nSTDBY.isOn() ? "ON" : "OFF");
                     out()->printf("fp_DETECT : %s\r\n", fp_DETECT.isOn() ? "ON" : "OFF");
-
+                    out()->print("FINGERPRINT_STATE: ");
+                    fpSensor.visitCurrentState([this](auto &state) {
+                        out()->println(state->getName());
+                    });
                     return runReturn::FINISHED;
                 }
 
@@ -297,11 +307,11 @@ namespace AppCore::Command {
                     return runReturn::ERROR;
                 }
                 out()->println(" index table       : ");
-                for (int i=0; i<16; i++) {
+                for (int i = 0; i < 16; i++) {
                     // out()->printf("%4d - %4d : ", indexPageId * 265 + i * 16, indexPageId * 265 + (i + 1) * 16 - 1);
                     out()->printf("%4d - %4d : ", indexPageId * 265 + (i + 1) * 16 - 1, indexPageId * 265 + i * 16);
                     const auto word = r.value().index[i];
-                    for (int j=15; j>=0; j--) {
+                    for (int j = 15; j >= 0; j--) {
                         out()->printf("%s", ((word >> j) & 0x01) > 0 ? "1" : "0");
                     }
                     out()->println();
@@ -355,7 +365,8 @@ namespace AppCore::Command {
                     out()->printf("ERROR: %s (0x%02x)\r\n", r.error().to_string(), r.error());
                     return runReturn::ERROR;
                 }
-                out()->printf(" instruction legal : %s\r\n", r.value().instructionLegalityCheckConfirmation.to_string());
+                out()->printf(" instruction legal : %s\r\n",
+                              r.value().instructionLegalityCheckConfirmation.to_string());
                 out()->printf(" picture drawing   : %s\r\n", r.value().pictureDrawingResultConfirmation.to_string());
                 out()->printf(" search result     : %s\r\n", r.value().searchResultConfirmation.to_string());
                 out()->printf(" fingerprintId     : %d\r\n", r.value().fingerprintId);
@@ -448,15 +459,15 @@ namespace AppCore::Command {
                 return runReturn::FINISHED;
             }
 
-/*
- * fp autoenroll 7 1 63
- * fp autoidentify 18 65535 7
- * fp readindextable 0
- * fp validtemplatenum
- *
- * fp loadchar 2 5
- * fp upchar 2
- */
+            /*
+             * fp autoenroll 16 2 63
+             * fp autoidentify 18 65535 7
+             * fp readindextable 0
+             * fp validtemplatenum
+             *
+             * fp loadchar 2 5
+             * fp upchar 2
+             */
 
 
 #endif
